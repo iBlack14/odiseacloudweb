@@ -49,7 +49,7 @@ function PricingSection({
   plans: HostingPlan[];
   type: ServiceTab;
   currency: Currency;
-  onCheckout: (id: string, name: string, price: number) => void;
+  onCheckout: (id: string, name: string, price: number, type: string) => void;
 }) {
   const filtered = plans.filter((p) => p.type === type);
   const isOneTime = type === "web-design" || type === "web-system" || type === "addon";
