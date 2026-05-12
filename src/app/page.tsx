@@ -112,7 +112,7 @@ function PricingSection({
                       : isOneTime
                         ? plan.price
                         : calculateFinalPrice(plan.price, currency).total;
-                  onCheckout(plan.id, plan.name, checkoutPrice);
+                  onCheckout(plan.id, plan.name, checkoutPrice, plan.type);
                 }}
               >
                 {isOneTime ? "Solicitar Propuesta" : `Contratar ${plan.name}`}
@@ -137,7 +137,7 @@ export default function Home() {
   const [results, setResults] = useState<DomainAvailability[]>([]);
   const [loading, setLoading] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState({ id: "", name: "", price: 0, domain: "" });
+  const [selectedItem, setSelectedItem] = useState({ id: "", name: "", price: 0, domain: "", type: "" });
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -150,8 +150,8 @@ export default function Home() {
     queryFn: fetchOdiseaPlans,
   });
 
-  const openCheckout = (id: string, name: string, basePrice: number) => {
-    setSelectedItem({ id, name, price: basePrice, domain: searchQuery });
+  const openCheckout = (id: string, name: string, basePrice: number, type: string = "shared") => {
+    setSelectedItem({ id, name, price: basePrice, domain: searchQuery, type });
     setIsCheckoutOpen(true);
   };
 
@@ -536,6 +536,7 @@ export default function Home() {
         itemPrice={selectedItem.price}
         currency={currency}
         domain={selectedItem.domain}
+        planType={selectedItem.type}
       />
     </main>
   );

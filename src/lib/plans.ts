@@ -165,7 +165,7 @@ const STATIC_FALLBACK: HostingPlan[] = [
 ];
 
 export async function fetchOdiseaPlans(): Promise<HostingPlan[]> {
-  const API_URL = process.env.NEXT_PUBLIC_ODISEA_API_URL || 'http://localhost:3001/api';
+  const API_URL = process.env.NEXT_PUBLIC_ODISEA_API_URL || 'http://localhost:3001/api/v1';
 
   try {
     const response = await fetch(`${API_URL}/public/plans`, { cache: 'no-store' });
