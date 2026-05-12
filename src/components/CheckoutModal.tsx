@@ -122,7 +122,13 @@ export default function CheckoutModal({ isOpen, onClose, planId, itemName, itemP
       script.setAttribute("kr-public-key", process.env.NEXT_PUBLIC_IZIPAY_PUBLIC_KEY || "47575197:testpublickey_a3D9ovCVNYiJPdPry70gIGYhzU8aRcLa1iEX72P5Cdixi");
       script.setAttribute("kr-post-url-success", "javascript:void(0)");
       script.setAttribute("kr-language", "es-PE");
-      script.setAttribute("kr-custom-css", `data:text/css;base64,${cssBase64}`);
+      
+      // En producción usamos la URL real, en local el Base64 (si Izipay lo permite) o nada
+      const cssUrl = window.location.hostname === 'localhost' 
+        ? `data:text/css;base64,${cssBase64}`
+        : `${window.location.origin}/izipay-dark.css`;
+        
+      script.setAttribute("kr-custom-css", cssUrl);
       script.onload = () => {
         // @ts-ignore
         if (window.KR) {
