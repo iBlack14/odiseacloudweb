@@ -1,383 +1,234 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, CreditCard, ShieldCheck, CheckCircle2, ArrowRight, Loader2, Zap } from "lucide-react";
-import { formatPrice, Currency } from "@/lib/pricing";
-import { ProvisioningStep, INITIAL_STEPS, simulateProvisioning } from "@/lib/provisioning";
+import { Currency, formatPrice } from "../lib/pricing";
 
 interface CheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
+  planId: string;
   itemName: string;
   itemPrice: number;
   currency: Currency;
 }
 
-export default function CheckoutModal({ isOpen, onClose, itemName, itemPrice, currency }: CheckoutModalProps) {
-  const [step, setStep] = useState(1);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [provisioningSteps, setProvisioningSteps] = useState<ProvisioningStep[]>(INITIAL_STEPS);
-  const [selectedPayment, setSelectedPayment] = useState<"card" | "yape" | "transfer">("card");
+type StepStatus = "pending" | "loading" | "done" | "error";
 
-  const startProvisioning = async () => {
-    setStep(4);
-    await simulateProvisioning((updatedSteps) => {
-      setProvisioningSteps(updatedSteps);
-    });
-  };
-
-  const handleNext = () => {
-    if (step === 2) {
-      setIsProcessing(true);
-      setTimeout(() => {
-        setIsProcessing(false);
-        setStep(3);
-      }, 2000);
-    } else if (step === 3) {
-      startProvisioning();
-    } else {
-      setStep(step + 1);
-    }
-  };
-
-  // Theme Constants (matching globals.css)
-  const accentColor = "var(--primary)";
-  const cyanColor = "var(--accent-cyan)";
-  const successColor = "#34d399";
-  const mutedColor = "var(--text-muted)";
-  const surfaceColor = "rgba(15, 15, 20, 0.95)";
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <div style={overlayStyle}>
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9, y: 40 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 40 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            style={modalStyle}
-          >
-            {/* Header */}
-            <header style={headerStyle}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
-                <img src="/logo.png" alt="Logo" style={{ height: '32px', width: 'auto' }} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', borderLeft: '1px solid var(--glass-border)', paddingLeft: '1.2rem' }}>
-                  <ShieldCheck size={18} color={accentColor} />
-                  <span style={{ fontWeight: 800, fontSize: '0.7rem', color: 'white', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                    {step === 4 ? "Activación en progreso" : "Secure Checkout"}
-                  </span>
-                </div>
-              </div>
-              <button onClick={onClose} style={closeBtnStyle}><X size={20} /></button>
-            </header>
-
-            {/* Content */}
-            <div style={contentStyle}>
-              {step === 1 && (
-                <motion.div initial={{ x: 30, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
-                  <h2 style={titleStyle}>Resumen del <span style={{ color: accentColor }}>Nodo</span></h2>
-                  <div style={summaryBoxStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', alignItems: 'center' }}>
-                      <span style={{ color: mutedColor, fontWeight: 500 }}>Configuración</span>
-                      <span style={{ fontWeight: 700, color: 'white', fontSize: '1.1rem' }}>{itemName}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--glass-border)', paddingTop: '2rem', alignItems: 'baseline' }}>
-                      <span style={{ fontWeight: 600, color: 'white' }}>Total a Pagar</span>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontWeight: 900, fontSize: '2.5rem', color: cyanColor, display: 'block' }}>{formatPrice(itemPrice, currency)}</span>
-                        <span style={{ fontSize: '0.7rem', color: mutedColor }}>Incluye impuestos y tasas</span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {step === 2 && (
-                <motion.div initial={{ x: 30, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
-                  <h2 style={titleStyle}>Método de <span style={{ color: accentColor }}>Pago</span></h2>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <PaymentOption 
-                      icon={
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          <img src="/visa.svg" alt="Visa" style={{ height: '10px' }} />
-                          <img src="/mastercard.svg" alt="MC" style={{ height: '16px' }} />
-                        </div>
-                      } 
-                      label="Visa / Mastercard" 
-                      selected={selectedPayment === "card"} 
-                      onClick={() => setSelectedPayment("card")}
-                    />
-                    <PaymentOption 
-                      icon={
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          <img src="/yape.svg" alt="Yape" style={{ height: '18px', borderRadius: '3px' }} />
-                          <img src="/plin.svg" alt="Plin" style={{ height: '18px', borderRadius: '3px' }} />
-                        </div>
-                      } 
-                      label="Yape / Plin" 
-                      selected={selectedPayment === "yape"} 
-                      onClick={() => setSelectedPayment("yape")}
-                    />
-                    <PaymentOption 
-                      icon={<CheckCircle2 size={18} />} 
-                      label="Transferencia Bancaria" 
-                      selected={selectedPayment === "transfer"} 
-                      onClick={() => setSelectedPayment("transfer")}
-                    />
-                  </div>
-
-                  {selectedPayment === "yape" && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }} 
-                      animate={{ opacity: 1, y: 0 }}
-                      style={{ marginTop: '2rem', padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid var(--glass-border)', textAlign: 'center' }}
-                    >
-                      <div style={{ width: '120px', height: '120px', background: 'white', margin: '0 auto 1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=ODISEA_PAYMENT" alt="QR Code" style={{ width: '100px' }} />
-                      </div>
-                      <p style={{ fontSize: '0.8rem', color: 'white', fontWeight: 600 }}>Escanea para pagar con Yape o Plin</p>
-                      <p style={{ fontSize: '0.7rem', color: mutedColor, marginTop: '0.4rem' }}>Adjunta tu captura en el siguiente paso</p>
-                    </motion.div>
-                  )}
-
-                  {selectedPayment === "transfer" && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }} 
-                      animate={{ opacity: 1, y: 0 }}
-                      style={{ marginTop: '2rem', padding: '1.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid var(--glass-border)' }}
-                    >
-                      <p style={{ fontSize: '0.8rem', color: 'white', fontWeight: 700, marginBottom: '0.8rem' }}>Cuentas Odisea Cloud:</p>
-                      <div style={{ fontSize: '0.75rem', color: mutedColor, lineHeight: '1.8' }}>
-                        <p>BCP: 191-XXXXXXXX-0-XX</p>
-                        <p>Interbank: 200-XXXXXXXX-X</p>
-                        <p>CCI: 002-XXXXXXXXXXXXXXXX</p>
-                      </div>
-                    </motion.div>
-                  )}
-                </motion.div>
-              )}
-
-              {step === 3 && (
-                <motion.div 
-                  initial={{ scale: 0.8, opacity: 0 }} 
-                  animate={{ scale: 1, opacity: 1 }}
-                  style={{ textAlign: 'center' }}
-                >
-                  <div style={{ 
-                    width: '100px', 
-                    height: '100px', 
-                    borderRadius: '30px', 
-                    background: 'rgba(52, 211, 153, 0.1)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    margin: '0 auto 2.5rem',
-                    border: '1px solid rgba(52, 211, 153, 0.2)',
-                    boxShadow: '0 0 40px rgba(52, 211, 153, 0.1)'
-                  }}>
-                    <CheckCircle2 size={50} color={successColor} />
-                  </div>
-                  <h2 style={{ fontSize: '2.5rem', marginBottom: '1rem', fontWeight: 900, color: 'white' }}>¡Nodo Asegurado!</h2>
-                  <p style={{ color: mutedColor, marginBottom: '4rem', fontSize: '1.2rem', lineHeight: 1.6, maxWidth: '400px', margin: '0 auto 4rem' }}>
-                    La transacción ha sido validada por la red. Tu espacio en la infraestructura está reservado.
-                  </p>
-                </motion.div>
-              )}
-
-              {step === 4 && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  <h2 style={{ ...titleStyle, textAlign: 'center', marginBottom: '4rem' }}>Aprovisionando <span style={{ color: cyanColor }}>Servicio</span></h2>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                    {provisioningSteps.map((s) => (
-                      <div key={s.id} style={{ opacity: s.status === 'pending' ? 0.3 : 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.8rem', fontSize: '0.95rem', fontWeight: 700 }}>
-                          <span style={{ color: 'white' }}>{s.label}</span>
-                          <span style={{ color: s.status === 'completed' ? successColor : cyanColor, fontFamily: 'monospace' }}>
-                            {s.status === 'loading' ? `${s.progress}%` : s.status.toUpperCase()}
-                          </span>
-                        </div>
-                        <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
-                          <motion.div 
-                            initial={{ width: 0 }}
-                            animate={{ width: `${s.progress}%` }}
-                            transition={{ duration: 0.4, ease: "easeOut" }}
-                            style={{ 
-                              height: '100%', 
-                              background: s.status === 'completed' ? successColor : `linear-gradient(90deg, ${accentColor}, ${cyanColor})`,
-                              boxShadow: s.status === 'loading' ? `0 0 15px ${accentColor}` : 'none'
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {provisioningSteps.every(s => s.status === 'completed') && (
-                    <motion.button 
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      onClick={() => window.location.href = '/dashboard'}
-                      style={{ ...primaryBtnStyle, width: '100%', marginTop: '5rem', justifyContent: 'center', background: 'white', color: 'black' }}
-                    >
-                      Entrar al Panel de Control <ArrowRight size={18} />
-                    </motion.button>
-                  )}
-                </motion.div>
-              )}
-            </div>
-
-            {/* Footer */}
-            {step < 3 && (
-              <footer style={footerStyle}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: mutedColor, letterSpacing: '0.05em' }}>
-                  STEP 0{step} <span style={{ opacity: 0.3 }}>/ 02</span>
-                </div>
-                <button 
-                  onClick={handleNext} 
-                  disabled={isProcessing}
-                  style={primaryBtnStyle}
-                >
-                  {isProcessing ? <Loader2 className="animate-spin" /> : (
-                    <>
-                      {step === 2 ? "Finalizar Compra" : "Continuar"} <ArrowRight size={18} />
-                    </>
-                  )}
-                </button>
-              </footer>
-            )}
-
-            {step === 3 && (
-              <footer style={{ ...footerStyle, justifyContent: 'center' }}>
-                <button onClick={handleNext} style={{ ...primaryBtnStyle, width: '100%', justifyContent: 'center', background: accentColor, color: 'white' }}>
-                  Desplegar Infraestructura <Zap size={18} />
-                </button>
-              </footer>
-            )}
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  );
+interface ProvStep {
+  label: string;
+  status: StepStatus;
 }
 
-function PaymentOption({ icon, label, selected = false, onClick }: { icon: any, label: string, selected?: boolean, onClick?: () => void }) {
+export default function CheckoutModal({ isOpen, onClose, planId, itemName, itemPrice, currency }: CheckoutModalProps) {
+  const [step, setStep] = useState(1);
+  const [payMethod, setPayMethod] = useState<"card" | "yape" | "transfer">("card");
+  const [form, setForm] = useState({ email: "", username: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [prov, setProv] = useState<ProvStep[]>([
+    { label: "Verificando transacción", status: "pending" },
+    { label: "Asignando nodo de cómputo", status: "pending" },
+    { label: "Configurando zona DNS", status: "pending" },
+    { label: "Instalando cPanel / WHM", status: "pending" },
+    { label: "Finalizando aprovisionamiento", status: "pending" },
+  ]);
+  const [done, setDone] = useState(false);
+
+  if (!isOpen) return null;
+
+  const updateProv = (idx: number, status: StepStatus) => {
+    setProv(prev => prev.map((p, i) => i === idx ? { ...p, status } : p));
+  };
+
+  const runProvisioning = async () => {
+    setStep(5);
+    for (let i = 0; i < 5; i++) {
+      updateProv(i, "loading");
+      await new Promise(r => setTimeout(r, 900 + Math.random() * 600));
+      updateProv(i, "done");
+    }
+    setDone(true);
+  };
+
+  const next = async () => {
+    if (step === 1) { setStep(2); return; }
+    if (step === 2) {
+      if (!form.email || !form.username || !form.password) return;
+      setStep(3); return;
+    }
+    if (step === 3) {
+      setLoading(true);
+      await new Promise(r => setTimeout(r, 1800));
+      setLoading(false);
+      setStep(4); return;
+    }
+    if (step === 4) { runProvisioning(); return; }
+  };
+
+  const statusIcon = (s: StepStatus) => {
+    if (s === "done") return "✓";
+    if (s === "loading") return "⟳";
+    if (s === "error") return "✕";
+    return "○";
+  };
+
   return (
-    <div 
-      onClick={onClick}
-      style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '1.2rem', 
-        padding: '1.6rem', 
-        borderRadius: '20px', 
-        border: `1px solid ${selected ? 'var(--primary)' : 'var(--glass-border)'}`,
-        background: selected ? 'rgba(99, 102, 241, 0.05)' : 'rgba(255,255,255,0.02)',
-        cursor: 'pointer',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        position: 'relative',
-        overflow: 'hidden'
-      }}
-    >
-      {selected && <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: '4px', background: 'var(--primary)' }} />}
-      <div style={{ color: selected ? 'var(--primary)' : 'var(--text-muted)' }}>{icon}</div>
-      <span style={{ fontWeight: 700, fontSize: '1rem', color: selected ? 'white' : 'var(--text-muted)' }}>{label}</span>
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <div style={{ width: "100%", maxWidth: "500px", background: "linear-gradient(145deg, #0f1623 0%, #0a0f1a 100%)", borderRadius: "28px", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 40px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+
+        {/* ── HEADER ── */}
+        <div style={{ padding: "20px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <img src="/logo.png" alt="Odisea" style={{ height: "36px", objectFit: "contain" }} />
+            <span style={{ fontSize: "10px", fontWeight: 700, color: "#00A3FF", background: "rgba(0,163,255,0.1)", border: "1px solid rgba(0,163,255,0.2)", padding: "3px 10px", borderRadius: "100px", letterSpacing: "0.05em" }}>🔒 SECURE</span>
+          </div>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: "50%", width: "36px", height: "36px", cursor: "pointer", color: "#94a3b8", fontSize: "18px", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+        </div>
+
+        {/* ── PROGRESS BAR ── */}
+        <div style={{ height: "2px", background: "rgba(255,255,255,0.05)" }}>
+          <div style={{ height: "100%", background: "linear-gradient(90deg, #00A3FF, #00d1ff)", width: `${Math.min(step / 4, 1) * 100}%`, transition: "width 0.5s ease" }} />
+        </div>
+
+        {/* ── CONTENT ── */}
+        <div style={{ padding: "36px 36px 28px", flex: 1 }}>
+
+          {/* STEP 1 — Resumen */}
+          {step === 1 && (
+            <div>
+              <p style={{ fontSize: "11px", fontWeight: 700, color: "#00A3FF", letterSpacing: "0.12em", marginBottom: "8px", textTransform: "uppercase" }}>Paso 1 de 4</p>
+              <h2 style={{ fontSize: "24px", fontWeight: 800, color: "white", marginBottom: "28px", letterSpacing: "-0.02em" }}>Resumen del Pedido</h2>
+
+              <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "20px", border: "1px solid rgba(255,255,255,0.07)", overflow: "hidden" }}>
+                <div style={{ padding: "24px", display: "flex", gap: "16px", alignItems: "center" }}>
+                  <div style={{ width: "52px", height: "52px", background: "linear-gradient(135deg, rgba(0,163,255,0.2), rgba(0,163,255,0.05))", border: "1px solid rgba(0,163,255,0.2)", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px" }}>🖥️</div>
+                  <div>
+                    <p style={{ fontSize: "10px", fontWeight: 700, color: "#64748b", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}>Plan Seleccionado</p>
+                    <p style={{ fontSize: "17px", fontWeight: 700, color: "white" }}>{itemName}</p>
+                  </div>
+                </div>
+                <div style={{ height: "1px", background: "rgba(255,255,255,0.05)" }} />
+                <div style={{ padding: "24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <p style={{ fontSize: "10px", fontWeight: 700, color: "#64748b", letterSpacing: "0.1em", textTransform: "uppercase" }}>Total a Pagar</p>
+                  <div style={{ textAlign: "right" }}>
+                    <p style={{ fontSize: "32px", fontWeight: 900, color: "white", letterSpacing: "-0.03em", lineHeight: 1 }}>{formatPrice(itemPrice, currency)}</p>
+                    <p style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>Incluye impuestos</p>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: "20px", padding: "14px 18px", background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.15)", borderRadius: "14px", display: "flex", gap: "10px", alignItems: "center" }}>
+                <span style={{ fontSize: "16px" }}>🛡️</span>
+                <p style={{ fontSize: "12px", color: "#6ee7b7", fontWeight: 600 }}>Pago 100% seguro con encriptación SSL de 256 bits</p>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2 — Cuenta */}
+          {step === 2 && (
+            <div>
+              <p style={{ fontSize: "11px", fontWeight: 700, color: "#00A3FF", letterSpacing: "0.12em", marginBottom: "8px", textTransform: "uppercase" }}>Paso 2 de 4</p>
+              <h2 style={{ fontSize: "24px", fontWeight: 800, color: "white", marginBottom: "8px", letterSpacing: "-0.02em" }}>Datos de tu Cuenta</h2>
+              <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "28px" }}>Crea las credenciales para acceder a tu panel de hosting.</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                {[
+                  { label: "👤 Usuario de Hosting", key: "username", type: "text", ph: "ej: miempresa" },
+                  { label: "📧 Correo de Contacto", key: "email", type: "email", ph: "hola@empresa.com" },
+                  { label: "🔑 Contraseña del Panel", key: "password", type: "password", ph: "••••••••••" }
+                ].map(f => (
+                  <div key={f.key}>
+                    <label style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>{f.label}</label>
+                    <input
+                      type={f.type}
+                      placeholder={f.ph}
+                      value={(form as any)[f.key]}
+                      onChange={e => setForm({ ...form, [f.key]: e.target.value })}
+                      style={{ width: "100%", padding: "14px 18px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "14px", color: "white", fontSize: "14px", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3 — Pago */}
+          {step === 3 && (
+            <div>
+              <p style={{ fontSize: "11px", fontWeight: 700, color: "#00A3FF", letterSpacing: "0.12em", marginBottom: "8px", textTransform: "uppercase" }}>Paso 3 de 4</p>
+              <h2 style={{ fontSize: "24px", fontWeight: 800, color: "white", marginBottom: "28px", letterSpacing: "-0.02em" }}>Método de Pago</h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {[
+                  { id: "card", icon: "💳", label: "Tarjeta Débito / Crédito", sub: "Visa, Mastercard, AMEX" },
+                  { id: "yape", icon: "📱", label: "Yape / Plin", sub: "Escanea el QR con tu app" },
+                  { id: "transfer", icon: "🏦", label: "Transferencia Bancaria", sub: "BCP, Interbank, BBVA, Scotiabank" },
+                ].map(m => (
+                  <button key={m.id} onClick={() => setPayMethod(m.id as any)} style={{ background: payMethod === m.id ? "rgba(0,163,255,0.08)" : "rgba(255,255,255,0.02)", border: `1px solid ${payMethod === m.id ? "#00A3FF" : "rgba(255,255,255,0.07)"}`, borderRadius: "16px", padding: "18px 20px", display: "flex", alignItems: "center", gap: "16px", cursor: "pointer", textAlign: "left", transition: "all 0.2s" }}>
+                    <span style={{ fontSize: "24px" }}>{m.icon}</span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: "14px", fontWeight: 700, color: "white", marginBottom: "2px" }}>{m.label}</p>
+                      <p style={{ fontSize: "11px", color: "#64748b" }}>{m.sub}</p>
+                    </div>
+                    <div style={{ width: "20px", height: "20px", borderRadius: "50%", border: `2px solid ${payMethod === m.id ? "#00A3FF" : "#334155"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {payMethod === m.id && <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#00A3FF" }} />}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4 — Confirmación */}
+          {step === 4 && (
+            <div style={{ textAlign: "center", padding: "20px 0" }}>
+              <div style={{ fontSize: "64px", marginBottom: "20px" }}>✅</div>
+              <h2 style={{ fontSize: "26px", fontWeight: 800, color: "white", marginBottom: "12px" }}>¡Pago Confirmado!</h2>
+              <p style={{ fontSize: "14px", color: "#64748b", lineHeight: 1.6, maxWidth: "300px", margin: "0 auto 28px" }}>Todo está listo. Presiona el botón para iniciar el despliegue de tu infraestructura.</p>
+              <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "16px", padding: "16px 20px", display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>Plan</span>
+                <span style={{ fontSize: "12px", color: "white", fontWeight: 700 }}>{itemName}</span>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 5 — Provisioning */}
+          {step === 5 && (
+            <div>
+              <h2 style={{ fontSize: "24px", fontWeight: 800, color: "white", marginBottom: "8px", textAlign: "center" }}>Activando Servicios</h2>
+              <p style={{ fontSize: "13px", color: "#64748b", textAlign: "center", marginBottom: "32px" }}>Esto tomará solo unos segundos...</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {prov.map((p, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 18px", background: p.status === "done" ? "rgba(16,185,129,0.06)" : p.status === "loading" ? "rgba(0,163,255,0.06)" : "rgba(255,255,255,0.02)", border: `1px solid ${p.status === "done" ? "rgba(16,185,129,0.15)" : p.status === "loading" ? "rgba(0,163,255,0.15)" : "rgba(255,255,255,0.04)"}`, borderRadius: "14px", transition: "all 0.4s" }}>
+                    <span style={{ fontSize: "16px", color: p.status === "done" ? "#10B981" : p.status === "loading" ? "#00A3FF" : "#334155", fontWeight: 900, animation: p.status === "loading" ? "spin 1s linear infinite" : "none" }}>{statusIcon(p.status)}</span>
+                    <span style={{ fontSize: "13px", fontWeight: 600, color: p.status === "pending" ? "#475569" : "white" }}>{p.label}</span>
+                    {p.status === "done" && <span style={{ marginLeft: "auto", fontSize: "11px", color: "#10B981", fontWeight: 700 }}>OK</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── FOOTER ── */}
+        <div style={{ padding: "20px 36px 28px" }}>
+          {step < 5 && (
+            <button
+              onClick={next}
+              disabled={loading}
+              style={{ width: "100%", padding: "17px", background: loading ? "#1e3a5f" : "linear-gradient(135deg, #00A3FF 0%, #0066dd 100%)", border: "none", borderRadius: "16px", color: "white", fontSize: "15px", fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", boxShadow: loading ? "none" : "0 8px 24px rgba(0,163,255,0.35)", transition: "all 0.3s", letterSpacing: "-0.01em" }}
+            >
+              {loading ? "⟳ Procesando..." : step === 4 ? "🚀 Activar Infraestructura" : step === 3 ? "💳 Confirmar Pago" : "Continuar →"}
+            </button>
+          )}
+          {step === 5 && done && (
+            <button
+              onClick={onClose}
+              style={{ width: "100%", padding: "17px", background: "linear-gradient(135deg, #10B981 0%, #059669 100%)", border: "none", borderRadius: "16px", color: "white", fontSize: "15px", fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", boxShadow: "0 8px 24px rgba(16,185,129,0.35)" }}
+            >
+              ✓ Ir al Panel de Control →
+            </button>
+          )}
+        </div>
+
+      </div>
     </div>
   );
 }
-
-// Styles
-const overlayStyle: React.CSSProperties = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  width: '100%',
-  height: '100%',
-  background: 'rgba(0, 0, 0, 0.8)',
-  backdropFilter: 'blur(20px)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-  padding: '1rem'
-};
-
-const modalStyle: React.CSSProperties = {
-  background: 'rgba(15, 15, 20, 0.95)',
-  border: '1px solid var(--glass-border)',
-  borderRadius: '40px',
-  width: '100%',
-  maxWidth: '560px',
-  overflow: 'hidden',
-  boxShadow: '0 50px 100px -20px rgba(0,0,0,1)',
-  position: 'relative',
-  backdropFilter: 'blur(40px)'
-};
-
-const headerStyle: React.CSSProperties = {
-  padding: '2.5rem 3.5rem',
-  borderBottom: '1px solid var(--glass-border)',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  background: 'rgba(255,255,255,0.02)'
-};
-
-const closeBtnStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.05)',
-  border: 'none',
-  color: 'white',
-  width: '40px',
-  height: '40px',
-  borderRadius: '50%',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  transition: 'all 0.2s ease'
-};
-
-const contentStyle: React.CSSProperties = {
-  padding: '4.5rem 3.5rem'
-};
-
-const titleStyle: React.CSSProperties = {
-  fontSize: '2.2rem',
-  marginBottom: '3rem',
-  fontFamily: 'var(--font-display)',
-  fontWeight: 900,
-  color: 'white',
-  letterSpacing: '-0.03em'
-};
-
-const summaryBoxStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.03)',
-  padding: '3rem',
-  borderRadius: '28px',
-  border: '1px solid var(--glass-border)'
-};
-
-const footerStyle: React.CSSProperties = {
-  padding: '2.5rem 3.5rem',
-  background: 'rgba(255,255,255,0.02)',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  borderTop: '1px solid var(--glass-border)'
-};
-
-const primaryBtnStyle: React.CSSProperties = {
-  background: 'var(--primary)',
-  color: 'white',
-  border: 'none',
-  padding: '1.2rem 3.5rem',
-  borderRadius: '20px',
-  fontWeight: 800,
-  fontSize: '1rem',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.8rem',
-  boxShadow: '0 15px 30px -10px rgba(99, 102, 241, 0.4)',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-};

@@ -32,7 +32,7 @@ function PricingSection({
   plans: HostingPlan[];
   type: ServiceTab;
   currency: Currency;
-  onCheckout: (name: string, price: number) => void;
+  onCheckout: (id: string, name: string, price: number) => void;
 }) {
   const filtered = plans.filter((p) => p.type === type);
   const isOneTime = type === "web-design" || type === "web-system" || type === "addon";
@@ -41,12 +41,16 @@ function PricingSection({
     <div className="pricing-grid">
       {filtered.map((plan) => {
         const isUnlimited = plan.id === 'unlimited';
-        const finalPrice = isOneTime
-          ? formatPrice(plan.price, currency)
-          : (() => {
-              const p = calculateFinalPrice(plan.price, currency);
-              return formatPrice(p.total, currency);
-            })();
+        const finalPrice = (() => {
+          if (currency === 'PEN' && plan.price_pen) {
+            return formatPrice(plan.price_pen, 'PEN');
+          }
+          if (isOneTime) {
+            return formatPrice(plan.price, currency);
+          }
+          const p = calculateFinalPrice(plan.price, currency);
+          return formatPrice(p.total, currency);
+        })();
 
         return (
           <div key={plan.id} className={`plan-card ${plan.popular || isUnlimited ? "featured" : ""}`}>
@@ -84,7 +88,7 @@ function PricingSection({
             <div className="plan-footer">
               <button
                 className={`plan-cta ${plan.popular || isUnlimited ? "primary" : "secondary"}`}
-                onClick={() => onCheckout(plan.name, plan.price)}
+                onClick={() => onCheckout(plan.id, plan.name, plan.price)}
               >
                 {isOneTime ? "Solicitar Propuesta" : `Contratar ${plan.name}`}
               </button>
@@ -108,7 +112,7 @@ export default function Home() {
   const [results, setResults] = useState<DomainAvailability[]>([]);
   const [loading, setLoading] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState({ name: "", price: 0 });
+  const [selectedItem, setSelectedItem] = useState({ id: "", name: "", price: 0 });
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -121,8 +125,8 @@ export default function Home() {
     queryFn: fetchOdiseaPlans,
   });
 
-  const openCheckout = (name: string, basePrice: number) => {
-    setSelectedItem({ name, price: basePrice });
+  const openCheckout = (id: string, name: string, basePrice: number) => {
+    setSelectedItem({ id, name, price: basePrice });
     setIsCheckoutOpen(true);
   };
 
@@ -302,7 +306,7 @@ export default function Home() {
                         </div>
                         <button
                           className={`domain-cta ${domainMode === "transfer" ? "transfer-cta" : ""}`}
-                          onClick={() => openCheckout(`${domainMode === "transfer" ? "Transferencia: " : ""}${res.domain}`, res.priceUSD)}
+                          onClick={() => openCheckout('domain-purchase', `${domainMode === "transfer" ? "Transferencia: " : ""}${res.domain}`, res.priceUSD)}
                         >
                           {domainMode === "register" ? "Registrar" : "Transferir"}
                         </button>
@@ -450,6 +454,7 @@ export default function Home() {
       <CheckoutModal
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
+        planId={selectedItem.id}
         itemName={selectedItem.name}
         itemPrice={selectedItem.price}
         currency={currency}

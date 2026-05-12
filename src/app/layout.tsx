@@ -4,6 +4,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Odisea Billing | Domain & Hosting Solutions",
   description: "Secure your digital future with Odisea. Premium hosting, domain registration, and reseller solutions.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 import QueryProvider from "@/components/QueryProvider";
