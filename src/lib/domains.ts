@@ -1,4 +1,4 @@
-import { calculateFinalPrice, Currency } from './pricing';
+import { Currency } from './pricing';
 
 export interface DomainAvailability {
   domain: string;
@@ -9,29 +9,25 @@ export interface DomainAvailability {
 }
 
 /**
- * Spaceship API Bridge
- * Handles domain searches and applies the business markup logic.
+ * Domain Search Service (Client-Side Bridge)
+ * Calls the internal secure API to protect credentials.
  */
 export async function searchDomain(query: string, currency: Currency = 'USD'): Promise<DomainAvailability[]> {
-  // En producción, aquí haríamos el fetch a Spaceship API
-  // const response = await fetch(`${process.env.SPACESHIP_API_URL}/domains/check?name=${query}`);
-  
-  // Mock de respuesta para desarrollo
-  await new Promise(resolve => setTimeout(resolve, 800)); // Simular latencia de red
+  try {
+    const response = await fetch('/api/domains/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, currency })
+    });
 
-  const tlds = ['.com', '.net', '.org', '.pe', '.com.pe'];
-  const name = query.split('.')[0];
+    if (!response.ok) {
+      throw new Error("Error en la búsqueda de dominios");
+    }
 
-  return tlds.map(tld => {
-    const basePrice = Math.random() * (15 - 8) + 8; // Precio base aleatorio entre 8 y 15 USD
-    const finalPriceDetails = calculateFinalPrice(basePrice, currency);
-
-    return {
-      domain: `${name}${tld}`,
-      available: Math.random() > 0.2, // 80% de probabilidad de estar disponible
-      priceUSD: basePrice,
-      priceUser: `${currency === 'PEN' ? 'S/ ' : '$'}${finalPriceDetails.total.toFixed(2)}`,
-      currency
-    };
-  });
+    return await response.json();
+  } catch (error) {
+    console.error("Search bridge error:", error);
+    // Fallback simple por si falla el servidor
+    return [];
+  }
 }

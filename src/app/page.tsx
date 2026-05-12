@@ -2,46 +2,124 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Server, Globe, Zap, ArrowRight, Check, Search } from "lucide-react";
+import {
+  ArrowRight, Check, Search, Server, Shield, Globe,
+  Zap, Monitor, Code2, Package, PlusCircle, Twitter, Linkedin, Instagram, Facebook
+} from "lucide-react";
 import { searchDomain, DomainAvailability } from "@/lib/domains";
 import CheckoutModal from "@/components/CheckoutModal";
 import { calculateFinalPrice, formatPrice, Currency } from "@/lib/pricing";
-import { fetchOdiseaPlans } from "@/lib/plans";
+import { fetchOdiseaPlans, HostingPlan } from "@/lib/plans";
 import { useQuery } from "@tanstack/react-query";
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
-};
+type ServiceTab = "shared" | "reseller" | "web-design" | "web-system" | "addon" | "combo";
 
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: { y: 0, opacity: 1, transition: { duration: 0.5, ease: "easeOut" } }
-};
+const SERVICE_TABS: { id: ServiceTab; label: string; icon: React.ReactNode; tagline: string }[] = [
+  { id: "shared",     label: "Hosting Compartido", icon: <Server size={18} />,  tagline: "Para sitios, blogs y tiendas. Ideal para empezar." },
+  { id: "reseller",   label: "Reseller WHM",        icon: <Shield size={18} />,  tagline: "Vende hosting con tu propia marca. Panel WHM completo." },
+  { id: "web-design", label: "Webs Corporativas",   icon: <Monitor size={18} />, tagline: "Diseño profesional llave en mano. Entrega garantizada." },
+  { id: "web-system", label: "Sistemas Web",        icon: <Code2 size={18} />,   tagline: "ERP, CRM, catálogos y sistemas a medida para tu empresa." },
+  { id: "addon",      label: "Complementos",       icon: <PlusCircle size={18} />, tagline: "Mejora tu infraestructura con SSL, IPs dedicadas y más." },
+  { id: "combo",      label: "Combos Especiales",   icon: <Package size={18} />, tagline: "Dominio + Hosting en un solo paquete con precio reducido." },
+];
+
+function PricingSection({
+  plans,
+  type,
+  currency,
+  onCheckout,
+}: {
+  plans: HostingPlan[];
+  type: ServiceTab;
+  currency: Currency;
+  onCheckout: (name: string, price: number) => void;
+}) {
+  const filtered = plans.filter((p) => p.type === type);
+  const isOneTime = type === "web-design" || type === "web-system" || type === "addon";
+
+  return (
+    <div className="pricing-grid">
+      {filtered.map((plan) => {
+        const isUnlimited = plan.id === 'unlimited';
+        const finalPrice = isOneTime
+          ? formatPrice(plan.price, currency)
+          : (() => {
+              const p = calculateFinalPrice(plan.price, currency);
+              return formatPrice(p.total, currency);
+            })();
+
+        return (
+          <div key={plan.id} className={`plan-card ${plan.popular || isUnlimited ? "featured" : ""}`}>
+            {(plan.popular || isUnlimited) && (
+              <div className="plan-badge">
+                {isUnlimited ? "Plan Definitivo" : "Más popular"}
+              </div>
+            )}
+            
+            <div className="plan-header">
+              <div className="plan-name">{plan.name}</div>
+              <p className="plan-desc">{plan.description}</p>
+            </div>
+
+            <div className="plan-price-box">
+              <div className="plan-price">
+                {finalPrice}
+                <span className="plan-period">{isOneTime ? "" : " /mes"}</span>
+              </div>
+              {plan.note && <div className="plan-note">{plan.note}</div>}
+            </div>
+
+            <div className="plan-divider" />
+
+            <div className="plan-features-header">¿Qué incluye este plan?</div>
+            <ul className="plan-features">
+              {plan.features.map((f, i) => (
+                <li key={i} className="plan-feature">
+                  <div className="feature-icon-check"><Check size={14} strokeWidth={3} /></div>
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="plan-footer">
+              <button
+                className={`plan-cta ${plan.popular || isUnlimited ? "primary" : "secondary"}`}
+                onClick={() => onCheckout(plan.name, plan.price)}
+              >
+                {isOneTime ? "Solicitar Propuesta" : `Contratar ${plan.name}`}
+              </button>
+              {!isOneTime && (
+                <div className="plan-guarantee">Garantía de reembolso de 30 días</div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function Home() {
-  const [currency, setCurrency] = useState<Currency>('USD');
+  const [currency, setCurrency] = useState<Currency>("USD");
+  const [scrolled, setScrolled] = useState(false);
+  const [activeTab, setActiveTab] = useState<ServiceTab>("shared");
   const [searchQuery, setSearchQuery] = useState("");
+  const [domainMode, setDomainMode] = useState<"register" | "transfer">("register");
   const [results, setResults] = useState<DomainAvailability[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // Checkout State
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState({ name: "", price: 0 });
 
-  // React Query for Plans
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const { data: plans = [] } = useQuery({
-    queryKey: ['plans'],
+    queryKey: ["plans"],
     queryFn: fetchOdiseaPlans,
   });
-
-  const getPrice = (base: number) => {
-    const p = calculateFinalPrice(base, currency);
-    return formatPrice(p.total, currency);
-  };
 
   const openCheckout = (name: string, basePrice: number) => {
     setSelectedItem({ name, price: basePrice });
@@ -50,367 +128,327 @@ export default function Home() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery) return;
+    if (!searchQuery.trim()) return;
     setLoading(true);
     try {
       const data = await searchDomain(searchQuery, currency);
       setResults(data);
-    } catch (error) {
-      console.error("Error searching domain", error);
+    } catch (err) {
+      console.error("Domain search error", err);
     } finally {
       setLoading(false);
     }
   };
 
+  const currentTab = SERVICE_TABS.find((t) => t.id === activeTab)!;
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   return (
-    <main style={{ minHeight: '100vh' }}>
-      {/* Sticky Navigation */}
-      <nav style={{ 
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        background: 'rgba(255, 255, 255, 0.8)',
-        backdropFilter: 'blur(16px)',
-        borderBottom: '1px solid var(--card-border)',
-        padding: '1rem 0'
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <img src="/logo.png" alt="Odisea Logo" style={{ height: '36px', width: 'auto' }} />
-            <div style={{ fontSize: '1.2rem', fontWeight: 900, fontFamily: 'var(--font-display)', letterSpacing: '-0.05em', color: 'var(--foreground)' }}>
-              ODISEA<span style={{ color: 'var(--primary)' }}>.CLOUD</span>
+    <main>
+      <div className="site-grid" />
+      <div className="site-glow" />
+
+      {/* ── Nav ── */}
+      <nav className={`nav ${scrolled ? "scrolled" : ""} ${isMenuOpen ? "menu-open" : ""}`}>
+        <div className="nav-inner">
+          <div className="nav-logo" onClick={() => window.scrollTo(0, 0)} style={{ cursor: 'pointer' }}>
+            <img src="/logo.png" alt="Odisea Cloud" />
+            ODISEA<span>.CLOUD</span>
+          </div>
+          
+          <div className={`nav-links ${isMenuOpen ? "active" : ""}`}>
+            <a href="#services" onClick={() => setIsMenuOpen(false)}>Servicios</a>
+            <a href="#domains" onClick={() => setIsMenuOpen(false)}>Dominios</a>
+            <a href="#pricing" onClick={() => setIsMenuOpen(false)}>Planes</a>
+            <a href="#" onClick={() => setIsMenuOpen(false)}>Soporte</a>
+            <div className="mobile-only-nav">
+              <a href="/login" className="btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>Área de Clientes</a>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '2.5rem', alignItems: 'center' }}>
-            <a href="#" style={{ color: 'oklch(0.4 0.05 260)', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none' }}>Soluciones</a>
-            <a href="#" style={{ color: 'oklch(0.4 0.05 260)', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none' }}>Soporte</a>
-            
-            <div style={{ 
-              display: 'flex', 
-              background: 'rgba(0,0,0,0.05)', 
-              padding: '3px', 
-              borderRadius: '10px',
-              border: '1px solid var(--card-border)'
-            }}>
-              <button 
-                onClick={() => setCurrency('USD')}
-                style={{
-                  padding: '5px 14px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: currency === 'USD' ? 'var(--primary)' : 'transparent',
-                  color: currency === 'USD' ? 'white' : 'var(--foreground)',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >USD</button>
-              <button 
-                onClick={() => setCurrency('PEN')}
-                style={{
-                  padding: '5px 14px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: currency === 'PEN' ? 'var(--primary)' : 'transparent',
-                  color: currency === 'PEN' ? 'white' : 'var(--foreground)',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >PEN</button>
+
+          <div className="nav-right">
+            <div className="currency-toggle">
+              <button className={`currency-btn ${currency === "USD" ? "active" : ""}`} onClick={() => setCurrency("USD")}>USD</button>
+              <button className={`currency-btn ${currency === "PEN" ? "active" : ""}`} onClick={() => setCurrency("PEN")}>PEN</button>
             </div>
+            <div className="desktop-only-nav">
+              <a href="/login" className="btn-ghost">Área de Clientes</a>
+            </div>
+            <a href="#pricing" className="btn-primary desktop-only-nav">Ver Planes <ArrowRight size={14} /></a>
             
-            <a href="/dashboard" style={{ 
-              background: 'var(--primary)', 
-              color: 'white', 
-              padding: '0.7rem 1.4rem', 
-              borderRadius: '12px', 
-              fontSize: '0.9rem', 
-              fontWeight: 800,
-              textDecoration: 'none',
-              boxShadow: '0 10px 20px -5px oklch(0.6 0.18 260 / 0.3)'
-            }}>Área de Clientes</a>
+            {/* Burger Button */}
+            <button className="burger" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+              <div className="burger-line" />
+              <div className="burger-line" />
+              <div className="burger-line" />
+            </button>
           </div>
         </div>
       </nav>
 
-      <div style={{ padding: '0 2rem', maxWidth: '1200px', margin: '0 auto' }}>
-        {/* Hero Section */}
-        <motion.section 
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-          style={{ textAlign: 'center', padding: '12rem 0 10rem' }}
-        >
-          <motion.h1 variants={itemVariants} style={{ fontSize: '5.5rem', marginBottom: '2rem', lineHeight: 1, fontWeight: 900, color: 'oklch(0.1 0.05 260)' }}>
-            Domina la web con <br />
-            <span style={{ color: 'var(--primary)' }}>Infraestructura Elite</span>
-          </motion.h1>
-          <motion.p variants={itemVariants} style={{ fontSize: '1.4rem', color: 'oklch(0.4 0.05 260)', maxWidth: '700px', margin: '0 auto 5rem', fontWeight: 500 }}>
-            Hosting de ultra-bajo retardo, dominios globales y herramientas para revendedores de alto volumen.
-          </motion.p>
+      <div className="page-content">
 
-          {/* Domain Search UI */}
-          <motion.div variants={itemVariants}>
-            <form onSubmit={handleSearch} style={{ 
-              background: 'white', 
-              border: '1px solid var(--card-border)',
-              borderRadius: '32px',
-              padding: '0.8rem',
-              display: 'flex',
-              maxWidth: '850px',
-              margin: '0 auto',
-              boxShadow: '0 40px 100px -20px rgba(0,0,0,0.1)',
-              position: 'relative'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', flex: 1, paddingLeft: '1.5rem' }}>
-                <Search size={20} color="var(--text-muted)" />
-                <input 
-                  type="text" 
-                  placeholder="Escribe el nombre de tu marca aquí..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{ 
-                    flex: 1, 
-                    background: 'transparent', 
-                    border: 'none', 
-                    padding: '1.2rem', 
-                    color: 'oklch(0.1 0.05 260)',
-                    fontSize: '1.15rem',
-                    outline: 'none',
-                    fontWeight: 500
-                  }}
-                />
-              </div>
-              <button 
-                disabled={loading}
-                style={{ 
-                  background: 'var(--primary)', 
-                  color: 'white', 
-                  border: 'none', 
-                  padding: '0 3rem', 
-                  borderRadius: '18px',
-                  fontWeight: 700,
-                  fontSize: '1.1rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  boxShadow: '0 0 20px var(--primary-glow)',
-                  opacity: loading ? 0.7 : 1
-                }}>
-                {loading ? "Analizando..." : "Verificar Disponibilidad"}
-              </button>
-            </form>
+        {/* ── Hero ── */}
+        <section className="hero" id="home">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div className="hero-eyebrow">
+              <Zap size={12} /> Agencia digital y proveedor de hosting en Latinoamérica
+            </div>
+            <h1>
+              Del dominio al<br /><em>sistema completo</em>
+            </h1>
+            <p className="hero-lead">
+              Hosting profesional, desarrollo web corporativo y sistemas a medida.
+              Un solo proveedor para toda tu infraestructura digital.
+            </p>
+            <div className="hero-actions">
+              <a href="#pricing" className="btn-primary">Ver todos los servicios <ArrowRight size={16} /></a>
+              <a href="#domains" className="btn-ghost">Buscar Dominio</a>
+            </div>
+            <div className="hero-trust">
+              <div className="hero-trust-dot" />
+              Hosting, desarrollo web y sistemas: más de 5,000 proyectos entregados desde 2018.
+            </div>
           </motion.div>
-        </motion.section>
+        </section>
 
-        {/* Search Results */}
-        {results.length > 0 && (
-          <div style={{ 
-            maxWidth: '700px', 
-            margin: '2rem auto 0', 
-            background: 'var(--card-bg)', 
-            border: '1px solid var(--card-border)',
-            borderRadius: '16px',
-            overflow: 'hidden',
-            backdropFilter: 'blur(10px)'
-          }}>
-            {results.map((res, i) => (
-              <div key={i} style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                padding: '1.2rem 2rem',
-                borderBottom: i === results.length - 1 ? 'none' : '1px solid var(--glass-border)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>{res.domain}</div>
-                  <span style={{ 
-                    fontSize: '0.7rem', 
-                    padding: '2px 8px', 
-                    borderRadius: '4px', 
-                    background: res.available ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                    color: res.available ? '#10b981' : '#ef4444',
-                    fontWeight: 700
-                  }}>
-                    {res.available ? "DISPONIBLE" : "OCUPADO"}
-                  </span>
-                </div>
-                {res.available && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                    <div style={{ fontWeight: 700, fontSize: '1.2rem' }}>{res.priceUser}</div>
-                    <button 
-                      onClick={() => openCheckout(res.domain, res.priceUSD)}
-                      style={{ 
-                      background: 'white', 
-                      color: 'black', 
-                      border: 'none', 
-                      padding: '0.5rem 1rem', 
-                      borderRadius: '8px', 
-                      fontWeight: 700,
-                      fontSize: '0.8rem',
-                      cursor: 'pointer'
-                    }}>Comprar</button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Plans Section */}
-        <section style={{ marginTop: '4rem' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '4rem', marginBottom: '4rem' }}>
-            <div style={{ textAlign: 'center', flex: '1 1 100%' }}>
-              <h2 style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>Nuestros <span style={{ color: 'var(--primary)' }}>Servicios</span></h2>
-              <p style={{ color: 'var(--text-muted)' }}>Potencia y escalabilidad para cada etapa de tu negocio</p>
+        {/* ── Services Overview (4 cards) ── */}
+        <section id="services" style={{ borderTop: "1px solid var(--border)", padding: "5rem 2rem" }}>
+          <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
+            <div style={{ marginBottom: "3rem" }}>
+              <h2 style={{ fontSize: "clamp(1.8rem, 3.5vw, 2.5rem)", marginBottom: "0.5rem" }}>Nuestros servicios</h2>
+              <p style={{ color: "var(--text-2)", fontSize: "1.05rem" }}>Seis categorías estratégicas. Cada una con sus planes y precios claros.</p>
             </div>
 
-            {/* Hosting Personal Section */}
-            <div style={{ flex: '1 1 100%', marginTop: '2rem' }}>
-               <h3 style={{ fontSize: '1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                 <Server size={24} color="var(--primary)" /> Hosting Compartido
-               </h3>
-               <div style={{ 
-                 display: 'grid', 
-                 gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-                 gap: '2rem' 
-               }}>
-                  {plans.filter(p => p.type === 'shared').map(plan => (
-                    <div key={plan.id} className="plan-card" style={cardStyle}>
-                      <h4>{plan.name}</h4>
-                      <div style={{ fontSize: '2rem', fontWeight: 700, margin: '1rem 0' }}>{getPrice(plan.price)}<span style={{ fontSize: '0.8rem', color: 'oklch(0.4 0.05 260)' }}>/mes</span></div>
-                      <ul style={listStyle}>
-                        {plan.features.map((f, i) => (
-                          <li key={i} style={listItemStyle}><Check size={14} color="var(--primary)" /> {f}</li>
-                        ))}
-                      </ul>
-                      <button onClick={() => openCheckout(plan.name, plan.price)} style={btnStyle}>Contratar</button>
-                    </div>
-                  ))}
-               </div>
-            </div>
-
-            {/* Reseller Section */}
-            <div style={{ flex: '1 1 100%', marginTop: '4rem' }}>
-               <h3 style={{ fontSize: '1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                 <Shield size={24} color="var(--primary)" /> Programas Reseller (WHM)
-               </h3>
-               <div style={{ 
-                 display: 'grid', 
-                 gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-                 gap: '2rem' 
-               }}>
-                  {plans.filter(p => p.type === 'reseller').map(plan => {
-                    const isPopular = plan.id.includes('silver');
-                    return (
-                      <div key={plan.id} className="plan-card" style={{
-                        ...cardStyle,
-                        border: isPopular ? '1px solid var(--primary)' : '1px solid var(--card-border)',
-                        background: isPopular ? 'oklch(0.6 0.18 260 / 0.03)' : 'var(--card-bg)',
-                        boxShadow: isPopular ? '0 20px 40px -10px oklch(0.6 0.18 260 / 0.1)' : 'none'
-                      }}>
-                        {isPopular && <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: 'var(--primary)', color: 'white', padding: '4px 16px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.05em' }}>POPULAR</div>}
-                        <h4>{plan.name}</h4>
-                        <div style={{ fontSize: isPopular ? '2.5rem' : '2rem', fontWeight: isPopular ? 900 : 700, margin: '1rem 0' }}>{getPrice(plan.price)}<span style={{ fontSize: '0.8rem', color: 'oklch(0.4 0.05 260)' }}>/mes</span></div>
-                        <ul style={listStyle}>
-                          {plan.features.map((f, i) => (
-                            <li key={i} style={listItemStyle}><Check size={14} color="var(--primary)" /> {f}</li>
-                          ))}
-                        </ul>
-                        <button 
-                          onClick={() => openCheckout(plan.name, plan.price)} 
-                          style={{...btnStyle, background: isPopular ? 'var(--primary)' : 'transparent', color: isPopular ? 'white' : 'inherit'}}
-                        >
-                          Ser Reseller
-                        </button>
-                      </div>
-                    );
-                  })}
-               </div>
-            </div>
-
-            {/* Digital Services Section - NEW */}
-            <div style={{ marginTop: '8rem', textAlign: 'center', width: '100%' }}>
-              <h2 style={{ fontSize: '3.5rem', marginBottom: '1rem', fontWeight: 900 }}>Servicios <span style={{ color: 'var(--primary)' }}>Digitales</span></h2>
-              <p style={{ color: 'oklch(0.4 0.05 260)', fontSize: '1.2rem', marginBottom: '5rem' }}>Soluciones de desarrollo a medida para marcas que buscan la excelencia.</p>
-
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', 
-                gap: '3rem' 
-              }}>
-                {/* Web Design Card */}
-                <div style={{ 
-                  background: 'white', 
-                  border: '1px solid var(--card-border)', 
-                  borderRadius: '32px', 
-                  padding: '4rem',
-                  textAlign: 'left',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '2rem',
-                  boxShadow: '0 20px 40px rgba(0,0,0,0.02)'
-                }}>
-                  <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'oklch(0.6 0.18 200 / 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'oklch(0.6 0.18 200)' }}>
-                    <Zap size={32} />
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Diseño Web Corporativo</h3>
-                    <p style={{ color: 'oklch(0.4 0.05 260)', lineHeight: 1.8 }}>Creamos presencia digital con identidad propia. Sitios web optimizados para conversión, velocidad extrema y SEO desde el primer día.</p>
-                  </div>
-                  <ul style={{ ...listStyle, marginBottom: '1rem' }}>
-                    <li style={listItemStyle}><Check size={16} color="var(--primary)" /> Diseño UI/UX Exclusivo</li>
-                    <li style={listItemStyle}><Check size={16} color="var(--primary)" /> Optimización de Velocidad</li>
-                    <li style={listItemStyle}><Check size={16} color="var(--primary)" /> Soporte Multilenguaje</li>
-                  </ul>
-                  <button 
-                    onClick={() => openCheckout("Diseño Web Corporativo", 499.00)}
-                    style={{ ...btnStyle, background: 'oklch(0.1 0.05 260)', color: 'white', border: 'none', padding: '1.2rem' }}>
-                    Solicitar Cotización <ArrowRight size={18} />
-                  </button>
-                </div>
-
-                {/* E-commerce Card */}
-                <div style={{ 
-                  background: 'oklch(0.1 0.05 260)', 
-                  borderRadius: '32px', 
-                  padding: '4rem',
-                  textAlign: 'left',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '2rem',
-                  color: 'white',
-                  boxShadow: '0 40px 80px -20px oklch(0.1 0.05 260 / 0.3)'
-                }}>
-                  <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'oklch(0.6 0.18 260 / 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-                    <Globe size={32} />
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '2rem', marginBottom: '1rem' }}>E-commerce Pro</h3>
-                    <p style={{ color: 'rgba(255,255,255,0.6)', lineHeight: 1.8 }}>Tu tienda online sin límites. Gestión de inventario, múltiples pasarelas de pago y panel administrativo intuitivo.</p>
-                  </div>
-                  <ul style={{ ...listStyle, marginBottom: '1rem' }}>
-                    <li style={{ ...listItemStyle, color: 'white' }}><Check size={16} color="var(--primary)" /> Pagos con Stripe/PayPal/Niubiz</li>
-                    <li style={{ ...listItemStyle, color: 'white' }}><Check size={16} color="var(--primary)" /> Gestión de Carrito Avanzada</li>
-                    <li style={{ ...listItemStyle, color: 'white' }}><Check size={16} color="var(--primary)" /> Hosting E-commerce Incluido</li>
-                  </ul>
-                  <button 
-                    onClick={() => openCheckout("E-commerce Pro", 899.00)}
-                    style={{ ...btnStyle, background: 'var(--primary)', color: 'white', border: 'none', padding: '1.2rem' }}>
-                    Empezar a Vender <ArrowRight size={18} />
-                  </button>
-                </div>
-              </div>
+            <div className="services-overview-grid">
+              {SERVICE_TABS.map((tab) => (
+                <a
+                  key={tab.id}
+                  href="#pricing"
+                  className="service-card"
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  <div className="service-card-icon">{tab.icon}</div>
+                  <h3>{tab.label}</h3>
+                  <p>{tab.tagline}</p>
+                  <span className="service-card-link">Ver planes <ArrowRight size={14} /></span>
+                </a>
+              ))}
             </div>
           </div>
         </section>
+
+        {/* ── Domain Search ── */}
+        <section className="domain-widget" id="domains" style={{ borderTop: "1px solid var(--border)" }}>
+          <div style={{ marginBottom: "2rem" }}>
+            <h2 style={{ fontSize: "clamp(1.8rem, 3.5vw, 2.5rem)", marginBottom: "0.5rem" }}>Registrar o Transferir Dominio</h2>
+            <p style={{ color: "var(--text-2)", fontSize: "1.05rem" }}>Todos los planes de hosting incluyen un dominio gratis el primer año.</p>
+          </div>
+
+          <div className="domain-tabs">
+            <button className={`domain-tab ${domainMode === "register" ? "active" : ""}`} onClick={() => { setDomainMode("register"); setResults([]); setSearchQuery(""); }}>
+              Registrar Dominio
+            </button>
+            <button className={`domain-tab ${domainMode === "transfer" ? "active" : ""}`} onClick={() => { setDomainMode("transfer"); setResults([]); setSearchQuery(""); }}>
+              Transferir Dominio
+            </button>
+          </div>
+
+          <form onSubmit={handleSearch}>
+            <div className="domain-search-box">
+              <div className="domain-search-icon"><Search size={20} /></div>
+              <input
+                type="text"
+                className="domain-search-input"
+                placeholder={domainMode === "register" ? "Escribe el nombre que deseas registrar..." : "Ingresa tu dominio actual para transferirlo..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <button type="submit" className="domain-search-btn" disabled={loading}>
+                {loading ? "Verificando..." : domainMode === "register" ? "Verificar Disponibilidad" : "Iniciar Transferencia"}
+              </button>
+            </div>
+          </form>
+
+          {domainMode === "transfer" && (
+            <div className="domain-transfer-note">
+              <Shield size={16} style={{ color: "var(--accent)", flexShrink: 0, marginTop: 1 }} />
+              <span>Para transferir necesitas el <strong>código EPP/Auth</strong> de tu registrador actual. La transferencia incluye 1 año adicional de registro sin costo extra.</span>
+            </div>
+          )}
+
+          <AnimatePresence>
+            {results.length > 0 && (
+              <motion.div className="domain-results" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                {results.map((res, i) => (
+                  <div className="domain-result-row" key={i}>
+                    <div className="domain-result-left">
+                      <span className="domain-result-name">{res.domain}</span>
+                      {domainMode === "register"
+                        ? <span className={`domain-badge ${res.available ? "available" : "taken"}`}>{res.available ? "Disponible" : "No Disponible"}</span>
+                        : <span className="domain-badge transfer">Transferible</span>
+                      }
+                    </div>
+                    {(res.available || domainMode === "transfer") && (
+                      <div className="domain-result-right">
+                        <div>
+                          <div className="domain-price">{res.priceUser}<span style={{ fontSize: "0.75rem", color: "var(--text-3)", fontWeight: 400 }}>/año</span></div>
+                          {domainMode === "transfer" && <div className="domain-price-sub">incl. 1 año de renovación</div>}
+                        </div>
+                        <button
+                          className={`domain-cta ${domainMode === "transfer" ? "transfer-cta" : ""}`}
+                          onClick={() => openCheckout(`${domainMode === "transfer" ? "Transferencia: " : ""}${res.domain}`, res.priceUSD)}
+                        >
+                          {domainMode === "register" ? "Registrar" : "Transferir"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </section>
+
+        {/* ── Pricing by Service ── */}
+        <section className="pricing" id="pricing" style={{ borderTop: "1px solid var(--border)" }}>
+          <div className="pricing-header">
+            <h2>Planes y precios</h2>
+            <p>Elige la categoría. Sin letra chica ni costos ocultos.</p>
+          </div>
+
+          {/* Service Tabs */}
+          <div className="service-tabs">
+            {SERVICE_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                className={`service-tab ${activeTab === tab.id ? "active" : ""}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Description */}
+          <div className="service-tab-desc">
+            <p>{currentTab.tagline}</p>
+            {(activeTab === "web-design" || activeTab === "web-system") && (
+              <span className="service-tab-note">Los precios son referenciales. El costo final se define tras la reunión de requerimientos.</span>
+            )}
+          </div>
+
+          {/* Plans for selected tab */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+            >
+              <PricingSection
+                plans={plans}
+                type={activeTab}
+                currency={currency}
+                onCheckout={openCheckout}
+              />
+            </motion.div>
+          </AnimatePresence>
+        </section>
+
+        {/* ── Footer ── */}
+        <footer className="site-footer">
+          <div className="footer-inner">
+            <div className="footer-top">
+              <div>
+                <div className="footer-brand">
+                  <img src="/logo.png" alt="Odisea Cloud" />
+                  ODISEA<span>.CLOUD</span>
+                </div>
+                <p className="footer-desc">
+                  Hosting, desarrollo web y sistemas. Todo en un solo proveedor para tu negocio digital en Latinoamérica.
+                </p>
+                <div className="footer-socials">
+                  <a href="#" className="footer-social"><Twitter size={16} /></a>
+                  <a href="#" className="footer-social"><Linkedin size={16} /></a>
+                  <a href="#" className="footer-social"><Instagram size={16} /></a>
+                  <a href="#" className="footer-social"><Facebook size={16} /></a>
+                </div>
+                <div style={{ marginTop: '3rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                    <Shield size={12} color="var(--accent)" />
+                    <h5 style={{ fontSize: '0.65rem', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.15em', margin: 0 }}>Pagos 100% Seguros</h5>
+                  </div>
+                  <div className="payment-methods-grid">
+                    <div className="payment-method-item" style={{ background: 'white', padding: '4px 8px', borderRadius: '4px' }}>
+                      <img src="/visa.svg" alt="Visa" />
+                    </div>
+                    <div className="payment-method-item">
+                      <img src="/mastercard.svg" alt="Mastercard" />
+                    </div>
+                    <div className="payment-method-item">
+                      <img src="/yape.png" alt="Yape" style={{ borderRadius: '6px' }} />
+                    </div>
+                    <div className="payment-method-item">
+                      <img src="/plin.png" alt="Plin" style={{ borderRadius: '6px' }} />
+                    </div>
+                    <div className="payment-method-item transfer-method">
+                      <span>TRANSF. BANCARIA</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="footer-col">
+                <h5>Hosting</h5>
+                <ul>
+                  <li><a href="#">Hosting Compartido</a></li>
+                  <li><a href="#">Reseller WHM</a></li>
+                  <li><a href="#">Registro de Dominios</a></li>
+                  <li><a href="#">Certificados SSL</a></li>
+                  <li><a href="#pricing" onClick={() => setActiveTab('addon')}>Complementos</a></li>
+                  <li><a href="#pricing" onClick={() => setActiveTab('combo')}>Combos Especiales</a></li>
+                </ul>
+              </div>
+              <div className="footer-col">
+                <h5>Desarrollo</h5>
+                <ul>
+                  <li><a href="#">Webs Corporativas</a></li>
+                  <li><a href="#">E-commerce</a></li>
+                  <li><a href="#">Sistemas de Gestión</a></li>
+                  <li><a href="#">CRM y ERP</a></li>
+                  <li><a href="#">Integraciones API</a></li>
+                </ul>
+              </div>
+              <div className="footer-col">
+                <h5>Soporte</h5>
+                <ul>
+                  <li><a href="#">Base de Conocimiento</a></li>
+                  <li><a href="#">Estado de Red</a></li>
+                  <li><a href="#">Tickets</a></li>
+                  <li><a href="/login">Área de Clientes</a></li>
+                </ul>
+              </div>
+            </div>
+            <div className="footer-bottom">
+              <span>© 2026 Odisea Cloud. Todos los derechos reservados.</span>
+              <div className="footer-bottom-links">
+                <a href="#">Términos de Servicio</a>
+                <a href="#">Política de Privacidad</a>
+                <a href="#">SLA</a>
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
 
-      {/* Checkout Modal */}
-      <CheckoutModal 
-        isOpen={isCheckoutOpen} 
+      <CheckoutModal
+        isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
         itemName={selectedItem.name}
         itemPrice={selectedItem.price}
@@ -420,45 +458,4 @@ export default function Home() {
   );
 }
 
-const cardStyle: React.CSSProperties = {
-  background: 'var(--card-bg)',
-  border: '1px solid var(--card-border)',
-  padding: '2.5rem',
-  borderRadius: '24px',
-  position: 'relative',
-  display: 'flex',
-  flexDirection: 'column',
-  backdropFilter: 'blur(10px)',
-  transition: 'transform 0.3s ease'
-};
 
-const listStyle: React.CSSProperties = {
-  listStyle: 'none',
-  padding: 0,
-  margin: '0 0 2.5rem 0',
-  flex: 1
-};
-
-const listItemStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.75rem',
-  marginBottom: '0.8rem',
-  fontSize: '0.95rem'
-};
-
-const btnStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '1rem',
-  borderRadius: '12px',
-  border: '1px solid var(--card-border)',
-  background: 'transparent',
-  color: 'white',
-  fontWeight: 600,
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: '0.5rem',
-  transition: 'all 0.2s ease'
-};

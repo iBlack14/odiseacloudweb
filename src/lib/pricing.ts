@@ -3,8 +3,8 @@
  * Handles Markup (5-15%) and Currency Conversion (USD/PEN)
  */
 
-export const MARKUP_PERCENTAGE = 0.12; // Default 12% profit
-export const USD_TO_PEN_RATE = 3.75;  // Example rate, should be fetched from API in production
+export const MARKUP_PERCENTAGE = Number(process.env.DOMAIN_MARKUP_PERCENT) || 0.12; 
+export const USD_TO_PEN_RATE = Number(process.env.CURRENCY_USD_TO_PEN) || 3.75; 
 
 export type Currency = 'USD' | 'PEN';
 
