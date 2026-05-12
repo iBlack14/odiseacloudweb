@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Currency, formatPrice } from "../lib/pricing";
 
 interface CheckoutModalProps {
@@ -10,40 +10,172 @@ interface CheckoutModalProps {
   itemName: string;
   itemPrice: number;
   currency: Currency;
+  domain?: string;
 }
 
 type StepStatus = "pending" | "loading" | "done" | "error";
+interface ProvStep { label: string; status: StepStatus; }
 
-interface ProvStep {
-  label: string;
-  status: StepStatus;
+/* ── Helpers ─────────────────────────────────────── */
+function slugifyName(name: string): string {
+  return name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "").slice(0, 16) || "cliente";
 }
 
-export default function CheckoutModal({ isOpen, onClose, planId, itemName, itemPrice, currency }: CheckoutModalProps) {
+function generatePassword(len = 16): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$!%&*";
+  const rand = () => crypto.getRandomValues(new Uint32Array(1))[0];
+  return Array.from({ length: len }, () => chars[rand() % chars.length]).join("");
+}
+
+function CopyBtn({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1800); }}
+      style={{ background: "rgba(0,163,255,0.12)", border: "1px solid rgba(0,163,255,0.25)", borderRadius: "6px", padding: "2px 10px", cursor: "pointer", fontSize: "11px", fontWeight: 700, color: "#00A3FF" }}>
+      {copied ? "✓ Copiado" : "Copiar"}
+    </button>
+  );
+}
+
+function CredRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "12px 16px", background: "rgba(255,255,255,0.03)", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.06)", marginBottom: "8px" }}>
+      <div>
+        <p style={{ fontSize: "10px", color: "#64748b", fontWeight: 700, textTransform: "uppercase", marginBottom: "3px" }}>{label}</p>
+        <p style={{ fontSize: "14px", color: "white", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{value}</p>
+      </div>
+      <CopyBtn text={value} />
+    </div>
+  );
+}
+
+export default function CheckoutModal({ isOpen, onClose, planId, itemName, itemPrice, currency, domain: initialDomain }: CheckoutModalProps) {
   const [step, setStep] = useState(1);
   const [payMethod, setPayMethod] = useState<"card" | "yape" | "transfer">("card");
-  const [form, setForm] = useState({ email: "", username: "", password: "" });
+  const [form, setForm] = useState({ name: "", email: "", domain: initialDomain || "" });
+  const [creds, setCreds] = useState({ username: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [formToken, setFormToken] = useState("");
+  const [tokenLoading, setTokenLoading] = useState(false);
+  const [done, setDone] = useState(false);
   const [prov, setProv] = useState<ProvStep[]>([
     { label: "Verificando transacción", status: "pending" },
-    { label: "Asignando nodo de cómputo", status: "pending" },
+    { label: "Aprovisionando en WHM", status: "pending" },
     { label: "Configurando zona DNS", status: "pending" },
     { label: "Instalando cPanel / WHM", status: "pending" },
-    { label: "Finalizando aprovisionamiento", status: "pending" },
+    { label: "Enviando credenciales al cliente", status: "pending" },
   ]);
-  const [done, setDone] = useState(false);
+
+  const izipayInjected = useRef(false);
+  const tokenFetched = useRef(false);
+
+  useEffect(() => {
+    if (initialDomain) setForm(prev => ({ ...prev, domain: initialDomain }));
+  }, [initialDomain]);
+
+  const prefetchToken = useCallback(async (name: string, email: string) => {
+    if (tokenFetched.current) return;
+    tokenFetched.current = true;
+    setTokenLoading(true);
+    try {
+      const resp = await fetch('/api/izipay/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: itemPrice, currency, email: email || 'cliente@odisea.pe', name: name || 'Cliente' }),
+      });
+      const data = await resp.json();
+      if (data.formToken) setFormToken(data.formToken);
+    } catch (e) { console.error("Izipay token error", e); tokenFetched.current = false; }
+    finally { setTokenLoading(false); }
+  }, [itemPrice, currency]);
+
+  useEffect(() => {
+    if (step === 4 && payMethod === "card" && formToken && !izipayInjected.current) {
+      izipayInjected.current = true;
+
+      // @ts-ignore
+      if (window.KR) {
+        // @ts-ignore
+        window.KR.setFormConfig({ formToken });
+        return;
+      }
+
+      const darkThemeCss = `
+        .kr-embedded { font-family: 'Inter', sans-serif !important; }
+        .kr-field-wrapper, .kr-field { 
+          background: rgba(255, 255, 255, 0.05) !important; 
+          border: 1px solid rgba(255, 255, 255, 0.1) !important; 
+          border-radius: 12px !important; 
+        }
+        .kr-field-element, .kr-field select { color: white !important; }
+        .kr-label { color: #94a3b8 !important; font-size: 11px !important; text-transform: uppercase !important; font-weight: 700 !important; }
+        .kr-payment-button button { 
+          background: linear-gradient(135deg, #00A3FF, #0066cc) !important; 
+          border-radius: 14px !important; padding: 16px !important; font-weight: 800 !important; 
+        }
+        .kr-field select { background: #0d1526 !important; }
+      `;
+      const cssBase64 = btoa(darkThemeCss);
+
+      const script = document.createElement("script");
+      script.src = "https://static.micuentaweb.pe/static/js/krypton-client/V4.0/stable/kr-payment-form.min.js";
+      script.setAttribute("kr-public-key", process.env.NEXT_PUBLIC_IZIPAY_PUBLIC_KEY || "47575197:testpublickey_a3D9ovCVNYiJPdPry70gIGYhzU8aRcLa1iEX72P5Cdixi");
+      script.setAttribute("kr-post-url-success", "javascript:void(0)");
+      script.setAttribute("kr-language", "es-PE");
+      script.setAttribute("kr-custom-css", `data:text/css;base64,${cssBase64}`);
+      script.onload = () => {
+        // @ts-ignore
+        if (window.KR) {
+          // @ts-ignore
+          window.KR.setFormConfig({ formToken });
+          // @ts-ignore
+          window.KR.onSubmit((res: any) => {
+            if (res.clientAnswer?.orderStatus === "PAID") {
+              setStep(5);
+            }
+            return false;
+          });
+        }
+      };
+      document.head.appendChild(script);
+    }
+  }, [step, payMethod, formToken]);
 
   if (!isOpen) return null;
 
-  const updateProv = (idx: number, status: StepStatus) => {
-    setProv(prev => prev.map((p, i) => i === idx ? { ...p, status } : p));
+  const handleClose = () => {
+    setStep(1); setForm({ name: "", email: "", domain: initialDomain || "" }); setCreds({ username: "", password: "" });
+    setProv(p => p.map(x => ({ ...x, status: "pending" }))); setDone(false); setLoading(false); setFormToken("");
+    izipayInjected.current = false; tokenFetched.current = false;
+    onClose();
   };
 
+  const updateProv = (idx: number, status: StepStatus) =>
+    setProv(prev => prev.map((p, i) => i === idx ? { ...p, status } : p));
+
   const runProvisioning = async () => {
-    setStep(5);
+    setStep(6);
     for (let i = 0; i < 5; i++) {
       updateProv(i, "loading");
-      await new Promise(r => setTimeout(r, 900 + Math.random() * 600));
+      if (i === 1) {
+        try {
+          await fetch('/api/provision', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ domain: form.domain, username: creds.username, password: creds.password, email: form.email, planId }),
+          });
+        } catch { updateProv(i, "error"); }
+      }
+      if (i === 4) {
+        try {
+          await fetch('/api/send-credentials', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: form.name, email: form.email, username: creds.username, password: creds.password, planName: itemName }),
+          });
+        } catch (e) { console.error(e); }
+      }
+      await new Promise(r => setTimeout(r, 1200 + Math.random() * 800));
       updateProv(i, "done");
     }
     setDone(true);
@@ -52,182 +184,154 @@ export default function CheckoutModal({ isOpen, onClose, planId, itemName, itemP
   const next = async () => {
     if (step === 1) { setStep(2); return; }
     if (step === 2) {
-      if (!form.email || !form.username || !form.password) return;
-      setStep(3); return;
+      if (!form.name.trim() || !form.email.trim()) return;
+      const username = slugifyName(form.name);
+      const password = generatePassword(16);
+      const finalDomain = form.domain || `${username}.odisea.live`;
+      setCreds({ username, password });
+      setForm(prev => ({ ...prev, domain: finalDomain }));
+      setStep(3);
+      return;
     }
     if (step === 3) {
-      setLoading(true);
-      await new Promise(r => setTimeout(r, 1800));
-      setLoading(false);
-      setStep(4); return;
+      if (payMethod === "card") {
+        setLoading(true);
+        await prefetchToken(form.name, form.email);
+        setLoading(false);
+      }
+      setStep(4);
+      return;
     }
-    if (step === 4) { runProvisioning(); return; }
+    if (step === 4) { setStep(5); return; }
+    if (step === 5) { runProvisioning(); return; }
   };
 
-  const statusIcon = (s: StepStatus) => {
-    if (s === "done") return "✓";
-    if (s === "loading") return "⟳";
-    if (s === "error") return "✕";
-    return "○";
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "14px 18px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "14px", color: "white", fontSize: "15px", outline: "none", boxSizing: "border-box",
   };
+
+  const canContinue = !(step === 2 && (!form.name.trim() || !form.email.trim()));
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <div style={{ width: "100%", maxWidth: "500px", background: "linear-gradient(145deg, #0f1623 0%, #0a0f1a 100%)", borderRadius: "28px", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 40px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.9)", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", fontFamily: "'Inter', sans-serif" }}>
+      <div style={{ width: "100%", maxWidth: "480px", background: "linear-gradient(160deg, #0d1526 0%, #080c16 100%)", borderRadius: "28px", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 40px 80px rgba(0,0,0,0.7)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
 
-        {/* ── HEADER ── */}
-        <div style={{ padding: "20px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <img src="/logo.png" alt="Odisea" style={{ height: "36px", objectFit: "contain" }} />
-            <span style={{ fontSize: "10px", fontWeight: 700, color: "#00A3FF", background: "rgba(0,163,255,0.1)", border: "1px solid rgba(0,163,255,0.2)", padding: "3px 10px", borderRadius: "100px", letterSpacing: "0.05em" }}>🔒 SECURE</span>
-          </div>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: "50%", width: "36px", height: "36px", cursor: "pointer", color: "#94a3b8", fontSize: "18px", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+        <div style={{ padding: "18px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <img src="/logo.png" alt="Odisea" style={{ height: "28px" }} />
+          <button onClick={handleClose} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: "50%", width: "32px", height: "32px", cursor: "pointer", color: "#94a3b8" }}>×</button>
         </div>
 
-        {/* ── PROGRESS BAR ── */}
         <div style={{ height: "2px", background: "rgba(255,255,255,0.05)" }}>
-          <div style={{ height: "100%", background: "linear-gradient(90deg, #00A3FF, #00d1ff)", width: `${Math.min(step / 4, 1) * 100}%`, transition: "width 0.5s ease" }} />
+          <div style={{ height: "100%", background: "linear-gradient(90deg, #00A3FF, #00d4ff)", width: `${(Math.min(step, 5) / 5) * 100}%`, transition: "width 0.5s ease" }} />
         </div>
 
-        {/* ── CONTENT ── */}
-        <div style={{ padding: "36px 36px 28px", flex: 1 }}>
-
-          {/* STEP 1 — Resumen */}
+        <div style={{ padding: "28px 28px 20px" }}>
           {step === 1 && (
             <div>
-              <p style={{ fontSize: "11px", fontWeight: 700, color: "#00A3FF", letterSpacing: "0.12em", marginBottom: "8px", textTransform: "uppercase" }}>Paso 1 de 4</p>
-              <h2 style={{ fontSize: "24px", fontWeight: 800, color: "white", marginBottom: "28px", letterSpacing: "-0.02em" }}>Resumen del Pedido</h2>
-
-              <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "20px", border: "1px solid rgba(255,255,255,0.07)", overflow: "hidden" }}>
-                <div style={{ padding: "24px", display: "flex", gap: "16px", alignItems: "center" }}>
-                  <div style={{ width: "52px", height: "52px", background: "linear-gradient(135deg, rgba(0,163,255,0.2), rgba(0,163,255,0.05))", border: "1px solid rgba(0,163,255,0.2)", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px" }}>🖥️</div>
-                  <div>
-                    <p style={{ fontSize: "10px", fontWeight: 700, color: "#64748b", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}>Plan Seleccionado</p>
-                    <p style={{ fontSize: "17px", fontWeight: 700, color: "white" }}>{itemName}</p>
-                  </div>
-                </div>
-                <div style={{ height: "1px", background: "rgba(255,255,255,0.05)" }} />
-                <div style={{ padding: "24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <p style={{ fontSize: "10px", fontWeight: 700, color: "#64748b", letterSpacing: "0.1em", textTransform: "uppercase" }}>Total a Pagar</p>
-                  <div style={{ textAlign: "right" }}>
-                    <p style={{ fontSize: "32px", fontWeight: 900, color: "white", letterSpacing: "-0.03em", lineHeight: 1 }}>{formatPrice(itemPrice, currency)}</p>
-                    <p style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>Incluye impuestos</p>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ marginTop: "20px", padding: "14px 18px", background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.15)", borderRadius: "14px", display: "flex", gap: "10px", alignItems: "center" }}>
-                <span style={{ fontSize: "16px" }}>🛡️</span>
-                <p style={{ fontSize: "12px", color: "#6ee7b7", fontWeight: 600 }}>Pago 100% seguro con encriptación SSL de 256 bits</p>
+              <p style={{ fontSize: "11px", fontWeight: 700, color: "#00A3FF", textTransform: "uppercase", marginBottom: "6px" }}>Paso 1 de 4</p>
+              <h2 style={{ fontSize: "22px", fontWeight: 800, color: "white", marginBottom: "24px" }}>Resumen del Pedido</h2>
+              <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: "20px", border: "1px solid rgba(255,255,255,0.07)", padding: "24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div><p style={{ fontSize: "10px", color: "#64748b", fontWeight: 700 }}>PLAN</p><p style={{ fontSize: "16px", fontWeight: 700, color: "white" }}>{itemName}</p></div>
+                <div style={{ textAlign: "right" }}><p style={{ fontSize: "10px", color: "#64748b", fontWeight: 700 }}>TOTAL</p><p style={{ fontSize: "28px", fontWeight: 900, color: "white" }}>{formatPrice(itemPrice, currency)}</p></div>
               </div>
             </div>
           )}
 
-          {/* STEP 2 — Cuenta */}
           {step === 2 && (
             <div>
-              <p style={{ fontSize: "11px", fontWeight: 700, color: "#00A3FF", letterSpacing: "0.12em", marginBottom: "8px", textTransform: "uppercase" }}>Paso 2 de 4</p>
-              <h2 style={{ fontSize: "24px", fontWeight: 800, color: "white", marginBottom: "8px", letterSpacing: "-0.02em" }}>Datos de tu Cuenta</h2>
-              <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "28px" }}>Crea las credenciales para acceder a tu panel de hosting.</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                {[
-                  { label: "👤 Usuario de Hosting", key: "username", type: "text", ph: "ej: miempresa" },
-                  { label: "📧 Correo de Contacto", key: "email", type: "email", ph: "hola@empresa.com" },
-                  { label: "🔑 Contraseña del Panel", key: "password", type: "password", ph: "••••••••••" }
-                ].map(f => (
-                  <div key={f.key}>
-                    <label style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>{f.label}</label>
-                    <input
-                      type={f.type}
-                      placeholder={f.ph}
-                      value={(form as any)[f.key]}
-                      onChange={e => setForm({ ...form, [f.key]: e.target.value })}
-                      style={{ width: "100%", padding: "14px 18px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "14px", color: "white", fontSize: "14px", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
-                    />
-                  </div>
-                ))}
+              <p style={{ fontSize: "11px", fontWeight: 700, color: "#00A3FF", textTransform: "uppercase", marginBottom: "6px" }}>Paso 2 de 4</p>
+              <h2 style={{ fontSize: "22px", fontWeight: 800, color: "white", marginBottom: "24px" }}>Tus Datos</h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                <input type="text" placeholder="Nombre completo" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} style={inputStyle} />
+                <input type="email" placeholder="Correo electrónico" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} style={inputStyle} />
               </div>
             </div>
           )}
 
-          {/* STEP 3 — Pago */}
           {step === 3 && (
             <div>
-              <p style={{ fontSize: "11px", fontWeight: 700, color: "#00A3FF", letterSpacing: "0.12em", marginBottom: "8px", textTransform: "uppercase" }}>Paso 3 de 4</p>
-              <h2 style={{ fontSize: "24px", fontWeight: 800, color: "white", marginBottom: "28px", letterSpacing: "-0.02em" }}>Método de Pago</h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {[
-                  { id: "card", icon: "💳", label: "Tarjeta Débito / Crédito", sub: "Visa, Mastercard, AMEX" },
-                  { id: "yape", icon: "📱", label: "Yape / Plin", sub: "Escanea el QR con tu app" },
-                  { id: "transfer", icon: "🏦", label: "Transferencia Bancaria", sub: "BCP, Interbank, BBVA, Scotiabank" },
-                ].map(m => (
-                  <button key={m.id} onClick={() => setPayMethod(m.id as any)} style={{ background: payMethod === m.id ? "rgba(0,163,255,0.08)" : "rgba(255,255,255,0.02)", border: `1px solid ${payMethod === m.id ? "#00A3FF" : "rgba(255,255,255,0.07)"}`, borderRadius: "16px", padding: "18px 20px", display: "flex", alignItems: "center", gap: "16px", cursor: "pointer", textAlign: "left", transition: "all 0.2s" }}>
-                    <span style={{ fontSize: "24px" }}>{m.icon}</span>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: "14px", fontWeight: 700, color: "white", marginBottom: "2px" }}>{m.label}</p>
-                      <p style={{ fontSize: "11px", color: "#64748b" }}>{m.sub}</p>
-                    </div>
-                    <div style={{ width: "20px", height: "20px", borderRadius: "50%", border: `2px solid ${payMethod === m.id ? "#00A3FF" : "#334155"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      {payMethod === m.id && <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#00A3FF" }} />}
-                    </div>
+              <p style={{ fontSize: "11px", fontWeight: 700, color: "#00A3FF", textTransform: "uppercase", marginBottom: "6px" }}>Paso 3 de 4</p>
+              <h2 style={{ fontSize: "22px", fontWeight: 800, color: "white", marginBottom: "20px" }}>Elige tu Pago</h2>
+              <div style={{ display: "flex", gap: "10px" }}>
+                {[{id:'card',label:'Tarjeta',icon:'💳'},{id:'yape',label:'Yape',icon:'📱'},{id:'transfer',label:'Banco',icon:'🏦'}].map(m => (
+                  <button key={m.id} onClick={() => setPayMethod(m.id as any)} style={{ flex: 1, padding: "15px 5px", borderRadius: "16px", border: payMethod === m.id ? "2px solid #00A3FF" : "1px solid rgba(255,255,255,0.1)", background: payMethod === m.id ? "rgba(0,163,255,0.1)" : "rgba(255,255,255,0.02)", color: "white", cursor: "pointer" }}>
+                    <div style={{ fontSize: "20px" }}>{m.icon}</div><div style={{ fontSize: "11px", fontWeight: 700, marginTop: "5px" }}>{m.label}</div>
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* STEP 4 — Confirmación */}
           {step === 4 && (
-            <div style={{ textAlign: "center", padding: "20px 0" }}>
-              <div style={{ fontSize: "64px", marginBottom: "20px" }}>✅</div>
-              <h2 style={{ fontSize: "26px", fontWeight: 800, color: "white", marginBottom: "12px" }}>¡Pago Confirmado!</h2>
-              <p style={{ fontSize: "14px", color: "#64748b", lineHeight: 1.6, maxWidth: "300px", margin: "0 auto 28px" }}>Todo está listo. Presiona el botón para iniciar el despliegue de tu infraestructura.</p>
-              <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "16px", padding: "16px 20px", display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>Plan</span>
-                <span style={{ fontSize: "12px", color: "white", fontWeight: 700 }}>{itemName}</span>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 5 — Provisioning */}
-          {step === 5 && (
             <div>
-              <h2 style={{ fontSize: "24px", fontWeight: 800, color: "white", marginBottom: "8px", textAlign: "center" }}>Activando Servicios</h2>
-              <p style={{ fontSize: "13px", color: "#64748b", textAlign: "center", marginBottom: "32px" }}>Esto tomará solo unos segundos...</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                {prov.map((p, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 18px", background: p.status === "done" ? "rgba(16,185,129,0.06)" : p.status === "loading" ? "rgba(0,163,255,0.06)" : "rgba(255,255,255,0.02)", border: `1px solid ${p.status === "done" ? "rgba(16,185,129,0.15)" : p.status === "loading" ? "rgba(0,163,255,0.15)" : "rgba(255,255,255,0.04)"}`, borderRadius: "14px", transition: "all 0.4s" }}>
-                    <span style={{ fontSize: "16px", color: p.status === "done" ? "#10B981" : p.status === "loading" ? "#00A3FF" : "#334155", fontWeight: 900, animation: p.status === "loading" ? "spin 1s linear infinite" : "none" }}>{statusIcon(p.status)}</span>
-                    <span style={{ fontSize: "13px", fontWeight: 600, color: p.status === "pending" ? "#475569" : "white" }}>{p.label}</span>
-                    {p.status === "done" && <span style={{ marginLeft: "auto", fontSize: "11px", color: "#10B981", fontWeight: 700 }}>OK</span>}
+              <p style={{ fontSize: "11px", fontWeight: 700, color: "#00A3FF", textTransform: "uppercase", marginBottom: "6px" }}>Paso 4 de 4</p>
+              <h2 style={{ fontSize: "22px", fontWeight: 800, color: "white", marginBottom: "20px" }}>
+                {payMethod === "card" ? "Finalizar Pago" : "Instrucciones de Pago"}
+              </h2>
+              <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: "20px", border: "1px solid rgba(255,255,255,0.08)", padding: "20px", minHeight: "260px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {payMethod === "card" ? (
+                  tokenLoading ? <p style={{ color: "#64748b" }}>Cargando pasarela...</p> : <div style={{ width: "100%" }}><div className="kr-embedded" kr-form-token={formToken} /></div>
+                ) : (
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: "40px", marginBottom: "10px" }}>{payMethod === "yape" ? "📱" : "🏦"}</div>
+                    <p style={{ color: "white", fontWeight: 600 }}>{payMethod === "yape" ? "Yape / Plin" : "Depósito Bancario"}</p>
+                    <p style={{ fontSize: "13px", color: "#64748b", marginTop: "8px" }}>Realiza el pago y presiona el botón para confirmar.</p>
                   </div>
-                ))}
+                )}
               </div>
+            </div>
+          )}
+
+          {step === 5 && (
+            <div style={{ textAlign: "center", padding: "20px 0" }}>
+              <div style={{ fontSize: "56px" }}>🎉</div>
+              <h2 style={{ fontSize: "22px", fontWeight: 800, color: "white" }}>¡Pedido Recibido!</h2>
+              <p style={{ color: "#64748b" }}>Activaremos tu hosting en unos segundos.</p>
+            </div>
+          )}
+
+          {step === 6 && (
+            <div>
+              <h2 style={{ fontSize: "20px", fontWeight: 800, color: "white", textAlign: "center", marginBottom: "20px" }}>Activando...</h2>
+              {prov.map((p, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px", color: p.status === 'done' ? '#10B981' : 'white' }}>
+                  <span>{p.status === 'done' ? '✓' : '○'}</span><span>{p.label}</span>
+                </div>
+              ))}
+              {done && (
+                <div style={{ marginTop: "15px", background: "rgba(0,163,255,0.06)", padding: "15px", borderRadius: "12px" }}>
+                  <CredRow label="Usuario" value={creds.username} /><CredRow label="Contraseña" value={creds.password} />
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* ── FOOTER ── */}
-        <div style={{ padding: "20px 36px 28px" }}>
-          {step < 5 && (
-            <button
-              onClick={next}
-              disabled={loading}
-              style={{ width: "100%", padding: "17px", background: loading ? "#1e3a5f" : "linear-gradient(135deg, #00A3FF 0%, #0066dd 100%)", border: "none", borderRadius: "16px", color: "white", fontSize: "15px", fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", boxShadow: loading ? "none" : "0 8px 24px rgba(0,163,255,0.35)", transition: "all 0.3s", letterSpacing: "-0.01em" }}
-            >
-              {loading ? "⟳ Procesando..." : step === 4 ? "🚀 Activar Infraestructura" : step === 3 ? "💳 Confirmar Pago" : "Continuar →"}
+        <div style={{ padding: "16px 28px 24px" }}>
+          {step <= 2 && (
+            <button onClick={next} disabled={!canContinue} style={{ width: "100%", padding: "15px", background: "linear-gradient(135deg, #00A3FF, #0066cc)", border: "none", borderRadius: "14px", color: "white", fontWeight: 800, cursor: "pointer" }}>
+              Continuar →
             </button>
           )}
-          {step === 5 && done && (
-            <button
-              onClick={onClose}
-              style={{ width: "100%", padding: "17px", background: "linear-gradient(135deg, #10B981 0%, #059669 100%)", border: "none", borderRadius: "16px", color: "white", fontSize: "15px", fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", boxShadow: "0 8px 24px rgba(16,185,129,0.35)" }}
-            >
-              ✓ Ir al Panel de Control →
+          {step === 3 && (
+            <button onClick={next} disabled={loading} style={{ width: "100%", padding: "15px", background: "linear-gradient(135deg, #00A3FF, #0066cc)", border: "none", borderRadius: "14px", color: "white", fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
+              {loading ? "Cargando pasarela..." : "Continuar →"}
             </button>
+          )}
+          {step === 4 && payMethod !== "card" && (
+            <button onClick={next} style={{ width: "100%", padding: "15px", background: "linear-gradient(135deg, #00A3FF, #0066cc)", border: "none", borderRadius: "14px", color: "white", fontWeight: 800, cursor: "pointer" }}>
+              He realizado el pago →
+            </button>
+          )}
+          {step === 5 && (
+            <button onClick={next} style={{ width: "100%", padding: "15px", background: "linear-gradient(135deg, #00A3FF, #0066cc)", border: "none", borderRadius: "14px", color: "white", fontWeight: 800, cursor: "pointer" }}>
+              🚀 Activar Hosting
+            </button>
+          )}
+          {step === 6 && done && (
+            <button onClick={handleClose} style={{ width: "100%", padding: "15px", background: "#10B981", border: "none", borderRadius: "14px", color: "white", fontWeight: 800, cursor: "pointer" }}>Finalizar</button>
           )}
         </div>
-
       </div>
     </div>
   );

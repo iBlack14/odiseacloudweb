@@ -1,5 +1,263 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
 
+/* ══════════════════════════════════════════
+   DOMAIN HERO — Full-screen landing section
+══════════════════════════════════════════ */
+.domain-hero {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7rem 2rem 5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Radial accent glow behind the card */
+.domain-hero::before {
+  content: '';
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 700px;
+  background: radial-gradient(ellipse at center,
+    oklch(0.62 0.22 259 / 0.13) 0%,
+    oklch(0.62 0.22 259 / 0.04) 40%,
+    transparent 70%);
+  pointer-events: none;
+}
+
+.domain-hero-inner {
+  max-width: 860px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2rem;
+}
+
+.domain-hero-h1 {
+  font-size: clamp(2.8rem, 6vw, 5.5rem);
+  letter-spacing: -0.05em;
+  line-height: 1.05;
+}
+.domain-hero-h1 em {
+  font-style: normal;
+  background: linear-gradient(135deg, var(--accent), oklch(0.75 0.18 290));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.domain-hero-sub {
+  font-size: 1.1rem;
+  color: var(--text-2);
+  max-width: 560px;
+  line-height: 1.65;
+  margin-top: -0.5rem;
+}
+
+/* ── Search Card ── */
+.dh-search-card {
+  width: 100%;
+  background: oklch(0.13 0.010 258 / 0.85);
+  border: 1px solid var(--border-hi);
+  border-radius: 20px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px oklch(0.62 0.22 259 / 0.08),
+    0 32px 64px -24px oklch(0 0 0 / 0.5),
+    inset 0 1px 0 oklch(1 0 0 / 0.05);
+  backdrop-filter: blur(16px);
+}
+
+/* Tabs */
+.dh-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 1.5rem;
+  gap: 0;
+}
+.dh-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: -1px;
+  font-family: var(--font-body);
+}
+.dh-tab.active { color: var(--text-1); border-bottom-color: var(--accent); }
+.dh-tab:hover:not(.active) { color: var(--text-2); }
+
+/* Input row */
+.dh-form { padding: 1.25rem 1.5rem 0; }
+.dh-input-row {
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border-hi);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.dh-input-row:focus-within {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px oklch(0.62 0.22 259 / 0.10);
+}
+.dh-search-icon {
+  flex-shrink: 0;
+  margin: 0 1rem;
+  color: var(--text-3);
+}
+.dh-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 1.1rem 0;
+  font-size: 1.05rem;
+  font-family: var(--font-body);
+  color: var(--text-1);
+  outline: none;
+}
+.dh-input::placeholder { color: var(--text-3); }
+.dh-btn {
+  margin: 6px;
+  padding: 0.8rem 2rem;
+  background: var(--accent);
+  color: oklch(0.99 0.005 258);
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  font-family: var(--font-body);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
+}
+.dh-btn:hover { background: var(--accent-hi); transform: translateY(-1px); }
+.dh-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+/* Spinner */
+.dh-spinner {
+  width: 18px; height: 18px;
+  border: 2px solid oklch(1 0 0 / 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Transfer note */
+.dh-transfer-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.85rem 1.5rem;
+  font-size: 0.82rem;
+  color: var(--text-2);
+  background: var(--accent-dim);
+  border-top: 1px solid var(--accent-border);
+}
+.dh-transfer-note svg { color: var(--accent); flex-shrink: 0; margin-top: 1px; }
+
+/* TLD chips */
+.dh-tld-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 1.25rem 1.5rem 1.5rem;
+  border-top: 1px solid var(--border);
+}
+.dh-tld-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-body);
+}
+.dh-tld-chip:hover { border-color: var(--accent-border); background: var(--accent-dim); }
+.dh-tld-ext { font-size: 0.9rem; font-weight: 700; color: var(--text-1); font-family: var(--font-mono); }
+.dh-tld-price { font-size: 0.78rem; color: var(--text-3); font-weight: 500; }
+.dh-tld-price small { font-size: 0.7rem; }
+
+/* Trust stats */
+.dh-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem 2.5rem;
+  padding: 0.5rem 0;
+}
+.dh-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.dh-stat-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.dh-stat-value { font-size: 1rem; font-weight: 800; color: var(--text-1); font-family: var(--font-display); }
+.dh-stat-label { font-size: 0.72rem; color: var(--text-3); font-weight: 500; }
+
+/* Secondary CTAs */
+.dh-secondary-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1rem;
+  margin-top: -0.5rem;
+}
+.dh-secondary-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-3);
+  transition: color 0.15s;
+}
+.dh-secondary-link:hover { color: var(--accent); }
+.dh-divider-dot { color: var(--border-hi); font-size: 1.2rem; line-height: 1; }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .domain-hero { padding: 6rem 1rem 4rem; }
+  .dh-btn { padding: 0.8rem 1.25rem; font-size: 0.85rem; min-width: auto; }
+  .dh-stats { gap: 0.5rem 1.25rem; }
+  .dh-tld-row { gap: 0.35rem; }
+  .dh-tab { padding: 0.75rem 1rem; font-size: 0.8rem; }
+}
+
+
+
 /* ── Services Overview Grid ── */
 .services-overview-grid {
   display: grid;
