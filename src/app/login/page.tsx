@@ -7,16 +7,54 @@ import { Lock, Mail, ArrowRight, ShieldCheck, Zap, ChevronLeft } from "lucide-re
 
 export default function Login() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      router.push("/dashboard");
-    }, 1500);
+    setError(null);
+
+    // Basic Validation
+    if (username.length < 3) {
+      setError("El usuario debe tener al menos 3 caracteres");
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_ODISEA_API_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error?.message || "Error al iniciar sesión");
+      }
+
+      // Save token (simple localStorage for testing, should be secure cookies/session)
+      localStorage.setItem("odisea_token", result.data.token);
+      localStorage.setItem("odisea_role", result.data.role);
+
+      router.push(result.data.redirectTo || "/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Ocurrió un error inesperado");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -83,16 +121,26 @@ export default function Login() {
                 <p>Ingresa tus datos para continuar.</p>
               </div>
 
+              {error && (
+                <motion.div 
+                  className="error-banner"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                >
+                  <ShieldCheck size={16} /> {error}
+                </motion.div>
+              )}
+
               <form onSubmit={handleSubmit} className="actual-form">
                 <div className="field-group">
-                  <label>Email</label>
+                  <label>Usuario o Email</label>
                   <div className="input-with-icon">
                     <Mail size={18} className="icon-abs" />
                     <input 
-                      type="email" 
-                      placeholder="ejemplo@correo.com" 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      type="text" 
+                      placeholder="admin o ejem@correo.com" 
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
                       required 
                     />
                   </div>
@@ -169,6 +217,20 @@ export default function Login() {
           top: -10%;
           right: -10%;
           filter: blur(60px);
+        }
+
+        .error-banner {
+          background: oklch(0.62 0.22 15 / 0.1);
+          border: 1px solid oklch(0.62 0.22 15 / 0.2);
+          color: #ff4d4d;
+          padding: 1rem;
+          border-radius: 12px;
+          margin-bottom: 2rem;
+          font-size: 0.85rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-weight: 600;
         }
 
         .login-content {

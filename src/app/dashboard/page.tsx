@@ -12,8 +12,17 @@ import { motion } from "framer-motion";
 export default function Dashboard() {
   const router = useRouter();
 
+  React.useEffect(() => {
+    const token = localStorage.getItem("odisea_token");
+    if (!token) {
+      router.replace("/login");
+    }
+  }, [router]);
+
   const handleLogout = () => {
-    router.push("/");
+    localStorage.removeItem("odisea_token");
+    localStorage.removeItem("odisea_role");
+    router.replace("/");
   };
 
   return (
