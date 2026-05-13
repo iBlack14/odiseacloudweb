@@ -3,12 +3,13 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Lock, Mail, ArrowRight, ShieldCheck, Zap, ChevronLeft } from "lucide-react";
+import { Lock, Mail, ArrowRight, ShieldCheck, Zap, ChevronLeft, Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -134,8 +135,8 @@ export default function Login() {
               <form onSubmit={handleSubmit} className="actual-form">
                 <div className="field-group">
                   <label>Usuario o Email</label>
-                  <div className="input-with-icon">
-                    <Mail size={18} className="icon-abs" />
+                  <div className="input-wrapper">
+                    <span className="input-icon-left"><Mail size={18} /></span>
                     <input 
                       type="text" 
                       placeholder="admin o ejem@correo.com" 
@@ -151,15 +152,23 @@ export default function Login() {
                     <label>Contraseña</label>
                     <a href="#" className="link-sm">¿Olvidaste la clave?</a>
                   </div>
-                  <div className="input-with-icon">
-                    <Lock size={18} className="icon-abs" />
+                  <div className="input-wrapper">
+                    <span className="input-icon-left"><Lock size={18} /></span>
                     <input 
-                      type="password" 
+                      type={showPassword ? "text" : "password"}
                       placeholder="••••••••" 
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required 
                     />
+                    <button 
+                      type="button" 
+                      className="input-icon-right" 
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
                   </div>
                 </div>
 
@@ -183,46 +192,38 @@ export default function Login() {
       <style jsx>{`
         .login-page {
           min-height: 100vh;
-          background: #050505;
+          background: var(--bg-raised);
           display: flex;
           align-items: center;
           justify-content: center;
           position: relative;
           overflow: hidden;
           padding: 2rem;
-          color: white;
+          color: var(--text-1);
           font-family: var(--font-body);
         }
         
         .login-visual-bg {
           position: absolute;
           inset: 0;
-          background-image: url('https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=2070&auto=format&fit=crop');
+          background-image: url('/hero_background_abstract_1778689298235.png'); /* Using the new abstract bg */
           background-size: cover;
           background-position: center;
-          opacity: 0.4;
-          filter: blur(80px) saturate(1.5);
+          opacity: 0.15;
+          filter: blur(40px);
         }
         .liquid-overlay {
           position: absolute;
           inset: 0;
-          background: radial-gradient(circle at 20% 30%, oklch(0.62 0.22 259 / 0.15) 0%, transparent 50%),
-                      radial-gradient(circle at 80% 70%, oklch(0.62 0.22 259 / 0.1) 0%, transparent 50%);
+          background: radial-gradient(circle at 20% 30%, oklch(0.68 0.18 245 / 0.05) 0%, transparent 60%),
+                      radial-gradient(circle at 80% 70%, oklch(0.68 0.18 245 / 0.08) 0%, transparent 50%);
         }
-        .glow-sphere {
-          position: absolute;
-          width: 600px;
-          height: 600px;
-          background: radial-gradient(circle, oklch(0.62 0.22 259 / 0.1) 0%, transparent 70%);
-          top: -10%;
-          right: -10%;
-          filter: blur(60px);
-        }
+        .glow-sphere { display: none; }
 
         .error-banner {
-          background: oklch(0.62 0.22 15 / 0.1);
-          border: 1px solid oklch(0.62 0.22 15 / 0.2);
-          color: #ff4d4d;
+          background: oklch(0.65 0.15 25 / 0.1);
+          border: 1px solid oklch(0.65 0.15 25 / 0.2);
+          color: var(--danger);
           padding: 1rem;
           border-radius: 12px;
           margin-bottom: 2rem;
@@ -245,13 +246,18 @@ export default function Login() {
           align-items: center;
           gap: 0.5rem;
           font-size: 0.85rem;
-          font-weight: 600;
-          color: oklch(1 0 0 / 0.6);
+          font-weight: 700;
+          color: var(--text-3);
           cursor: pointer;
           margin-bottom: 3rem;
           transition: color 0.2s;
+          background: white;
+          padding: 8px 16px;
+          border-radius: 100px;
+          border: 1px solid var(--border);
+          box-shadow: var(--shadow-sm);
         }
-        .back-action:hover { color: white; }
+        .back-action:hover { color: var(--accent); border-color: var(--accent); }
 
         .login-grid {
           display: grid;
@@ -273,34 +279,36 @@ export default function Login() {
         .brand-logo span { color: var(--accent); }
 
         .display-title {
-          font-size: 4.5rem;
+          font-size: 4rem;
           font-weight: 900;
-          line-height: 1;
+          line-height: 1.05;
           letter-spacing: -0.04em;
-          margin-bottom: 4rem;
+          margin-bottom: 3rem;
+          color: var(--text-1);
         }
         .display-title span { color: var(--accent); }
 
         .features-list {
           display: flex;
           flex-direction: column;
-          gap: 2rem;
+          gap: 1.5rem;
           max-width: 380px;
         }
         .feature-card {
           display: flex;
           gap: 1.25rem;
           align-items: center;
-          background: oklch(1 0 0 / 0.03);
+          background: white;
           padding: 1.25rem;
           border-radius: 20px;
-          border: 1px solid oklch(1 0 0 / 0.05);
+          border: 1px solid var(--border);
+          box-shadow: var(--shadow-sm);
         }
         .icon-box {
           width: 48px;
           height: 48px;
-          background: var(--accent-dim);
-          border: 1px solid var(--accent-border);
+          background: var(--bg-raised);
+          border: 1px solid var(--border);
           border-radius: 14px;
           display: flex;
           align-items: center;
@@ -309,57 +317,77 @@ export default function Login() {
           flex-shrink: 0;
         }
         .feat-text { flex: 1; }
-        .feature-card h5 { font-size: 1rem; margin-bottom: 0.25rem; }
-        .feature-card p { font-size: 0.85rem; color: oklch(1 0 0 / 0.5); margin: 0; }
+        .feature-card h5 { font-size: 1rem; font-weight: 800; color: var(--text-1); margin-bottom: 0.25rem; }
+        .feature-card p { font-size: 0.85rem; color: var(--text-2); margin: 0; line-height: 1.4; }
 
         .glass-card {
-          background: oklch(0.12 0.01 258 / 0.8);
-          backdrop-filter: blur(30px);
-          border: 1px solid oklch(1 0 0 / 0.1);
+          background: white;
+          border: 1px solid var(--border-hi);
           border-radius: 32px;
-          padding: 4rem;
-          box-shadow: 0 50px 100px -20px oklch(0 0 0 / 0.5);
+          padding: 3.5rem;
+          box-shadow: var(--shadow-xl);
         }
-        .form-header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
-        .form-header p { color: oklch(1 0 0 / 0.5); font-size: 0.95rem; margin-bottom: 3rem; }
+        .form-header h1 { font-size: 2.25rem; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+        .form-header p { color: var(--text-2); font-size: 0.95rem; margin-bottom: 2.5rem; }
 
         .actual-form { display: flex; flex-direction: column; gap: 1.5rem; }
-        .field-group { display: flex; flex-direction: column; gap: 0.75rem; }
-        .field-group label { font-size: 0.8rem; font-weight: 700; color: oklch(1 0 0 / 0.8); text-transform: uppercase; letter-spacing: 0.05em; margin: 0; }
+        .field-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        .field-group label { font-size: 0.75rem; font-weight: 800; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; margin: 0; }
         .row-between { display: flex; justify-content: space-between; align-items: center; }
-        .link-sm { font-size: 0.75rem; color: var(--accent); font-weight: 600; text-decoration: none; }
+        .link-sm { font-size: 0.75rem; color: var(--accent); font-weight: 700; text-decoration: none; transition: opacity 0.2s; }
+        .link-sm:hover { opacity: 0.8; }
 
-        .input-with-icon { position: relative; display: flex; align-items: center; }
-        .icon-abs { 
-          position: absolute; 
-          left: 1.25rem; 
-          top: 50%; 
-          transform: translateY(-50%); 
-          color: oklch(1 0 0 / 0.3); 
-          z-index: 10;
+        .input-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+        .input-icon-left {
+          position: absolute;
+          left: 1.25rem;
+          color: var(--text-3);
           pointer-events: none;
           display: flex;
           align-items: center;
           justify-content: center;
         }
-        .input-with-icon input {
+        .input-icon-right {
+          position: absolute;
+          right: 1.25rem;
+          color: var(--text-3);
+          background: none;
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          transition: color 0.2s;
+        }
+        .input-icon-right:hover { color: var(--text-1); }
+        
+        .input-wrapper input {
           width: 100%;
-          background: oklch(0 0 0 / 0.3);
-          border: 1px solid oklch(1 0 0 / 0.1);
-          padding: 1.25rem 1.25rem 1.25rem 3.5rem;
+          display: block;
+          background: var(--bg-raised);
+          border: 1px solid var(--border);
+          padding: 1.25rem 3.5rem;
           border-radius: 16px;
-          color: white;
+          color: var(--text-1);
           font-size: 1rem;
           font-family: var(--font-body);
-          transition: all 0.2s;
-          height: 60px; /* Force consistent height */
+          font-weight: 500;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          height: 60px;
+          box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.02);
         }
-        .input-with-icon input:focus {
-          background: oklch(0 0 0 / 0.5);
+        .input-wrapper input:focus {
+          background: white;
           border-color: var(--accent);
-          box-shadow: 0 0 0 4px var(--accent-dim);
+          box-shadow: 0 0 0 4px var(--accent-dim), inset 0 2px 4px 0 rgba(0,0,0,0.02);
           outline: none;
         }
+        .input-wrapper input::placeholder { color: var(--text-3); font-weight: 400; }
 
         .prime-btn {
           margin-top: 1rem;
@@ -375,24 +403,28 @@ export default function Login() {
           align-items: center;
           justify-content: center;
           gap: 0.75rem;
-          transition: all 0.2s;
-          box-shadow: 0 15px 30px -5px oklch(0.62 0.22 259 / 0.4);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 10px 25px -8px oklch(0.68 0.18 245 / 0.5);
         }
-        .prime-btn:hover { transform: translateY(-2px); box-shadow: 0 20px 40px -5px oklch(0.62 0.22 259 / 0.5); }
+        .prime-btn:hover { 
+          transform: translateY(-2px); 
+          box-shadow: 0 15px 35px -10px oklch(0.68 0.18 245 / 0.6); 
+          background: var(--accent-hi);
+        }
         .prime-btn:active { transform: translateY(0); }
 
         .form-footer {
           margin-top: 2.5rem;
           text-align: center;
           font-size: 0.9rem;
-          color: oklch(1 0 0 / 0.5);
+          color: var(--text-2);
         }
-        .form-footer a { color: var(--accent); font-weight: 700; text-decoration: none; }
+        .form-footer a { color: var(--accent); font-weight: 800; text-decoration: none; }
 
         @media (max-width: 1024px) {
           .login-grid { grid-template-columns: 1fr; gap: 4rem; }
           .features-side { display: none; }
-          .glass-card { padding: 3rem; }
+          .glass-card { padding: 2.5rem; }
           .display-title { font-size: 3rem; }
         }
       `}</style>

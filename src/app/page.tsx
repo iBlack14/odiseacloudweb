@@ -177,6 +177,7 @@ export default function Home() {
       <div className="site-glow" />
 
       {/* ── Nav ── */}
+      {/* ── Nav ── */}
       <nav className={`nav ${scrolled ? "scrolled" : ""} ${isMenuOpen ? "menu-open" : ""}`}>
         <div className="nav-inner">
           <div className="nav-logo" onClick={() => window.scrollTo(0, 0)} style={{ cursor: 'pointer' }}>
@@ -200,9 +201,9 @@ export default function Home() {
               <button className={`currency-btn ${currency === "PEN" ? "active" : ""}`} onClick={() => setCurrency("PEN")}>PEN</button>
             </div>
             <div className="desktop-only-nav">
-              <a href="/login" className="btn-ghost">Área de Clientes</a>
+              <a href="/login" className="btn-ghost" style={{ border: 'none' }}>Acceder</a>
             </div>
-            <a href="#pricing" className="btn-primary desktop-only-nav">Ver Planes <ArrowRight size={14} /></a>
+            <a href="#pricing" className="btn-primary desktop-only-nav" style={{ padding: '0.6rem 1.5rem', borderRadius: '100px' }}>Empezar <ArrowRight size={14} /></a>
             
             {/* Burger Button */}
             <button className="burger" onClick={() => setIsMenuOpen(!isMenuOpen)}>
@@ -219,28 +220,50 @@ export default function Home() {
         {/* ══════════════════════════════════════════
             HERO — Domain search as centrepiece
         ══════════════════════════════════════════ */}
-        <section className="domain-hero" id="home">
+        <section className="domain-hero" id="home" style={{ background: "radial-gradient(circle at top, oklch(0.68 0.18 245 / 0.03) 0%, transparent 70%)" }}>
+          {/* Subtle background glow */}
+          <div className="site-glow" style={{ opacity: 0.4 }}></div>
+
           <motion.div
             className="domain-hero-inner"
-            initial={{ opacity: 0, y: 28 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            style={{ position: "relative", zIndex: 1 }}
           >
             {/* Eyebrow */}
-            <div className="hero-eyebrow">
-              <Zap size={12} /> Agencia digital · Hosting · Dominios en Latinoamérica
+            <div className="hero-eyebrow" style={{ background: "white", border: "1px solid var(--border)", color: "var(--accent)", padding: "8px 20px", borderRadius: "100px", boxShadow: "var(--shadow-sm)" }}>
+              <Zap size={12} fill="currentColor" /> <span style={{ letterSpacing: "0.05em", fontWeight: 700 }}>INFRAESTRUCTURA DE PRÓXIMA GENERACIÓN</span>
             </div>
 
             {/* Headline */}
-            <h1 className="domain-hero-h1">
-              Tu dominio,<br /><em>tu identidad digital</em>
+            <h1 className="domain-hero-h1" style={{ fontSize: "clamp(2.5rem, 8vw, 5.5rem)", marginBottom: "1.5rem" }}>
+              Tu proyecto merece<br />
+              <span style={{ 
+                background: "linear-gradient(135deg, var(--text-1) 20%, var(--accent) 100%)", 
+                WebkitBackgroundClip: "text", 
+                WebkitTextFillColor: "transparent",
+                fontWeight: 900
+              }}>
+                el mejor espacio.
+              </span>
             </h1>
-            <p className="domain-hero-sub">
-              Encuentra y registra el nombre perfecto para tu negocio. Incluye DNS, SSL y protección de privacidad gratis.
+            
+            <p className="domain-hero-sub" style={{ fontSize: "1.15rem", maxWidth: "600px", color: "var(--text-2)", lineHeight: 1.6, margin: "0 auto 3rem" }}>
+              Hosting de alto rendimiento, dominios globales y soluciones tecnológicas diseñadas para escalar tu visión digital.
             </p>
 
             {/* Search widget */}
-            <div className="dh-search-card" id="domains">
+            <div className="dh-search-card" id="domains" style={{ 
+              marginTop: "0", 
+              background: "white",
+              border: "1px solid var(--border-hi)",
+              boxShadow: "0 30px 60px -12px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.02)",
+              borderRadius: "24px"
+            }}>
+              {/* Subtle decorative pattern */}
+              <div style={{ position: "absolute", inset: 0, opacity: 0.02, pointerEvents: "none", backgroundImage: "radial-gradient(circle at 2px 2px, black 1px, transparent 0)", backgroundSize: "32px 32px" }}></div>
+
               <div className="dh-tabs">
                 <button
                   className={`dh-tab ${domainMode === "register" ? "active" : ""}`}
@@ -257,8 +280,8 @@ export default function Home() {
               </div>
 
               <form onSubmit={handleSearch} className="dh-form">
-                <div className="dh-input-row">
-                  <Search size={20} className="dh-search-icon" />
+                <div className="dh-search-box">
+                  <Search size={20} className="dh-input-icon" />
                   <input
                     id="domain-search-input"
                     type="text"
@@ -305,10 +328,10 @@ export default function Home() {
                           <span className="domain-result-name">{res.domain}</span>
                           {domainMode === "register"
                             ? <span className={`domain-badge ${res.available ? "available" : "taken"}`}>{res.available ? "Disponible" : "No Disponible"}</span>
-                            : <span className="domain-badge transfer">Transferible</span>
+                            : <span className={`domain-badge ${!res.available ? "transfer" : "taken"}`}>{!res.available ? "Transferible" : "No registrado"}</span>
                           }
                         </div>
-                        {(res.available || domainMode === "transfer") && (
+                        {((domainMode === "register" && res.available) || (domainMode === "transfer" && !res.available)) && (
                           <div className="domain-result-right">
                             <div>
                               <div className="domain-price">{res.priceUser}<span style={{ fontSize: "0.75rem", color: "var(--text-3)", fontWeight: 400 }}>/año</span></div>
@@ -343,32 +366,36 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Trust stats row */}
-            <div className="dh-stats">
-              {TRUST_STATS.map(({ icon, value, label }) => (
-                <div key={label} className="dh-stat">
-                  <div className="dh-stat-icon">{icon}</div>
-                  <div>
-                    <div className="dh-stat-value">{value}</div>
-                    <div className="dh-stat-label">{label}</div>
-                  </div>
-                </div>
-              ))}
+            {/* Trust stats */}
+            <div className="dh-stats" style={{ border: "none", padding: "4rem 0 2rem" }}>
+              <div className="dh-stat">
+                <div className="dh-stat-icon"><Shield size={18} /></div>
+                <div className="dh-stat-value">5,000+</div>
+                <div className="dh-stat-label">Proyectos Activos</div>
+              </div>
+              <div className="dh-stat">
+                <div className="dh-stat-icon"><Star size={18} /></div>
+                <div className="dh-stat-value">4.9/5</div>
+                <div className="dh-stat-label">Calificación promedio</div>
+              </div>
+              <div className="dh-stat">
+                <div className="dh-stat-icon"><Clock size={18} /></div>
+                <div className="dh-stat-value">99.9%</div>
+                <div className="dh-stat-label">Uptime garantizado</div>
+              </div>
+              <div className="dh-stat">
+                <div className="dh-stat-icon"><Zap size={18} /></div>
+                <div className="dh-stat-value">SSL</div>
+                <div className="dh-stat-label">Gratis incluido</div>
+              </div>
             </div>
 
-            {/* Secondary CTAs */}
-            <div className="dh-secondary-ctas">
-              <a href="#pricing" className="dh-secondary-link">
-                Ver planes de hosting <ChevronRight size={14} />
-              </a>
-              <span className="dh-divider-dot">·</span>
-              <a href="#services" className="dh-secondary-link">
-                Desarrollo web <ChevronRight size={14} />
-              </a>
-              <span className="dh-divider-dot">·</span>
-              <a href="/login" className="dh-secondary-link">
-                Área de clientes <ChevronRight size={14} />
-              </a>
+            <div className="dh-secondary-ctas" style={{ marginTop: "1rem" }}>
+              <a href="#pricing">Ver planes de hosting <ChevronRight size={14} /></a>
+              <span className="dh-cta-divider"></span>
+              <a href="#domains">Desarrollo web <ChevronRight size={14} /></a>
+              <span className="dh-cta-divider"></span>
+              <a href="/login">Área de clientes <ChevronRight size={14} /></a>
             </div>
           </motion.div>
         </section>
