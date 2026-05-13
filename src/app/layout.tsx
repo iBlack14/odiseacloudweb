@@ -19,6 +19,26 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                // Silenciar Window Management API
+                if (typeof window !== 'undefined') {
+                  window.getScreenDetails = function() {
+                    return Promise.reject(new Error('Permission denied by security policy'));
+                  };
+                  // Silenciar Local Font Access API
+                  window.queryLocalFonts = function() {
+                    return Promise.resolve([]);
+                  };
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body>
         <div className="odisea-bg" />
         <QueryProvider>
