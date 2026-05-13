@@ -3,7 +3,7 @@ import { Currency } from './pricing';
 export interface DomainAvailability {
   domain: string;
   available: boolean;
-  priceUSD: number;
+  priceTotal: number;
   priceUser: string;
   currency: Currency;
 }

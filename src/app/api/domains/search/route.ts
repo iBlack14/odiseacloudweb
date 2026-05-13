@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { calculateFinalPrice } from '@/lib/pricing';
+import { calculateFinalPrice, formatPrice } from '@/lib/pricing';
 
 /**
  * Spaceship Retail Prices (USD/year) — May 2026
@@ -76,8 +76,8 @@ export async function POST(req: Request) {
       return {
         domain: res.domain,
         available: res.result === 'available',
-        priceUSD: basePrice,
-        priceUser: `${currency === 'PEN' ? 'S/ ' : '$'}${finalPriceDetails.total.toFixed(2)}`,
+        priceTotal: finalPriceDetails.total,
+        priceUser: formatPrice(finalPriceDetails.total, currency),
         currency
       };
     });

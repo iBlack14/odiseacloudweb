@@ -1,3 +1,5 @@
+import { USD_TO_PEN_RATE } from './pricing';
+
 /**
  * Odisea Plan & Service Definitions
  */
@@ -22,6 +24,7 @@ const STATIC_FALLBACK: HostingPlan[] = [
     id: 'unlimited',
     name: 'Unlimited Hosting Plan',
     price: 49.99,
+    price_pen: 189.00,
     type: 'shared',
     popular: true,
     description: 'Poder absoluto sin restricciones para tu negocio.',
@@ -31,6 +34,7 @@ const STATIC_FALLBACK: HostingPlan[] = [
     id: 'starter',
     name: 'Starter',
     price: 4.99,
+    price_pen: 19.00,
     type: 'shared',
     description: 'Para blogs y proyectos personales.',
     features: ['5 GB NVMe SSD', '50 GB Transferencia', '1 Sitio Web', 'SSL Gratis', 'Correos Ilimitados']
@@ -39,6 +43,7 @@ const STATIC_FALLBACK: HostingPlan[] = [
     id: 'business',
     name: 'Business',
     price: 14.99,
+    price_pen: 59.00,
     type: 'shared',
     description: 'Para empresas en crecimiento.',
     popular: true,
@@ -48,6 +53,7 @@ const STATIC_FALLBACK: HostingPlan[] = [
     id: 'pro',
     name: 'Pro',
     price: 29.99,
+    price_pen: 115.00,
     type: 'shared',
     description: 'Para proyectos de alto tráfico.',
     features: ['60 GB NVMe SSD', 'Transferencia Ilimitada', 'Sitios Ilimitados', 'Staging environment', 'IP dedicada']
@@ -58,6 +64,7 @@ const STATIC_FALLBACK: HostingPlan[] = [
     id: 'reseller-bronze',
     name: 'Reseller Bronze',
     price: 29.99,
+    price_pen: 115.00,
     type: 'reseller',
     description: 'Empieza tu propio negocio de hosting.',
     features: ['10 cuentas cPanel', '100 GB NVMe SSD', 'Marca blanca total', 'WHM incluido', 'SSL gratis por cuenta']
@@ -66,6 +73,7 @@ const STATIC_FALLBACK: HostingPlan[] = [
     id: 'reseller-silver',
     name: 'Reseller Silver',
     price: 89.99,
+    price_pen: 349.00,
     type: 'reseller',
     popular: true,
     description: 'Para revendedores con cartera activa.',
@@ -75,6 +83,7 @@ const STATIC_FALLBACK: HostingPlan[] = [
     id: 'reseller-gold',
     name: 'Reseller Gold',
     price: 199.99,
+    price_pen: 779.00,
     type: 'reseller',
     description: 'Agencias de gran escala.',
     features: ['Cuentas ilimitadas', '2 TB NVMe SSD', 'Marca blanca total', 'IP dedicada', 'SLA premium 99.99%']
@@ -85,6 +94,7 @@ const STATIC_FALLBACK: HostingPlan[] = [
     id: 'web-basic',
     name: 'Web Básica',
     price: 349.00,
+    price_pen: 1350.00,
     type: 'web-design',
     description: 'Presencia digital profesional en 7 días.',
     note: 'Pago único',
@@ -94,6 +104,7 @@ const STATIC_FALLBACK: HostingPlan[] = [
     id: 'web-corporate',
     name: 'Web Corporativa',
     price: 799.00,
+    price_pen: 3100.00,
     type: 'web-design',
     popular: true,
     description: 'Sitio completo con CMS y Blog.',
@@ -106,6 +117,7 @@ const STATIC_FALLBACK: HostingPlan[] = [
     id: 'sys-gestion',
     name: 'Sistema de Gestión',
     price: 1299.00,
+    price_pen: 5000.00,
     type: 'web-system',
     popular: true,
     description: 'ERP ligero: ventas e inventario.',
@@ -116,6 +128,7 @@ const STATIC_FALLBACK: HostingPlan[] = [
     id: 'sys-custom',
     name: 'Sistema a Medida',
     price: 2499.00,
+    price_pen: 9700.00,
     type: 'web-system',
     description: 'Solución personalizada para tu negocio.',
     note: 'Desde',
@@ -127,6 +140,7 @@ const STATIC_FALLBACK: HostingPlan[] = [
     id: 'addon-ssl-wildcard',
     name: 'SSL Wildcard',
     price: 89.00,
+    price_pen: 345.00,
     type: 'addon',
     description: 'Seguridad total subdominios.',
     note: 'Anual',
@@ -136,6 +150,7 @@ const STATIC_FALLBACK: HostingPlan[] = [
     id: 'addon-dedicated-ip',
     name: 'IP Dedicada',
     price: 5.00,
+    price_pen: 19.00,
     type: 'addon',
     description: 'Mejora tu reputación de correo.',
     note: 'Mensual',
@@ -147,6 +162,7 @@ const STATIC_FALLBACK: HostingPlan[] = [
     id: 'combo-starter-com',
     name: 'Combo Emprendedor',
     price: 12.99,
+    price_pen: 49.00,
     type: 'combo',
     description: 'Lanza tu web con todo incluido.',
     note: 'Mensual',
@@ -156,12 +172,14 @@ const STATIC_FALLBACK: HostingPlan[] = [
     id: 'combo-business-pe',
     name: 'Combo Local Perú',
     price: 24.99,
+    price_pen: 95.00,
     type: 'combo',
     popular: true,
     description: 'Ideal para posicionamiento local.',
     note: 'Mensual',
     features: ['Dominio .PE gratis', 'Hosting 20GB SSD', 'SSL Premium', 'Backup Diario']
   }
+
 ];
 
 export async function fetchOdiseaPlans(): Promise<HostingPlan[]> {
@@ -173,16 +191,19 @@ export async function fetchOdiseaPlans(): Promise<HostingPlan[]> {
     if (response.ok) {
       const result = await response.json();
       if (result.success && Array.isArray(result.data)) {
-        const apiPlans = result.data.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          price: parseFloat(p.price_usd) || 5.00,
-          price_pen: parseFloat(p.price_pen) || 19.00,
-          features: Array.isArray(p.features) ? p.features : [],
-          type: (p.type?.toLowerCase() || 'shared') as any,
-          description: p.description || '',
-          popular: p.is_popular
-        }));
+        const apiPlans = result.data.map((p: any) => {
+          const priceUsd = parseFloat(p.price_usd) || 5.00;
+          return {
+            id: p.id,
+            name: p.name,
+            price: priceUsd,
+            price_pen: parseFloat(p.price_pen) || (priceUsd * USD_TO_PEN_RATE),
+            features: Array.isArray(p.features) ? p.features : [],
+            type: (p.type?.toLowerCase() || 'shared') as any,
+            description: p.description || '',
+            popular: p.is_popular
+          };
+        });
 
         const finalPlans = [...apiPlans];
         const categories: HostingPlan['type'][] = ['shared', 'reseller', 'web-design', 'web-system', 'addon', 'combo'];

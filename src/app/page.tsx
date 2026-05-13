@@ -9,17 +9,17 @@ import {
 } from "lucide-react";
 import { searchDomain, DomainAvailability } from "@/lib/domains";
 import CheckoutModal from "@/components/CheckoutModal";
-import { calculateFinalPrice, formatPrice, Currency } from "@/lib/pricing";
+import { calculateFinalPrice, formatPrice, Currency, USD_TO_PEN_RATE } from "@/lib/pricing";
 import { fetchOdiseaPlans, HostingPlan } from "@/lib/plans";
 import { useQuery } from "@tanstack/react-query";
 
 const POPULAR_TLDS = [
-  { tld: ".com",  price: "$8.99" },
-  { tld: ".pe",   price: "$29.00" },
-  { tld: ".net",  price: "$10.99" },
-  { tld: ".org",  price: "$9.99" },
-  { tld: ".store",price: "$4.99" },
-  { tld: ".io",   price: "$39.99" },
+  { tld: ".com",  price: 8.99 },
+  { tld: ".pe",   price: 29.00 },
+  { tld: ".net",  price: 10.99 },
+  { tld: ".org",  price: 9.99 },
+  { tld: ".store",price: 4.99 },
+  { tld: ".io",   price: 39.99 },
 ];
 
 const TRUST_STATS = [
@@ -58,15 +58,15 @@ function PricingSection({
     <div className="pricing-grid">
       {filtered.map((plan) => {
         const isUnlimited = plan.id === 'unlimited';
-        const finalPrice = (() => {
-          if (currency === 'PEN' && plan.price_pen) {
-            return formatPrice(plan.price_pen, 'PEN');
+        
+        // Logic for Display Price
+        const displayPrice = (() => {
+          if (currency === 'PEN') {
+            const penValue = plan.price_pen || calculateFinalPrice(plan.price, 'PEN').total;
+            return formatPrice(penValue, 'PEN');
           }
-          if (isOneTime) {
-            return formatPrice(plan.price, currency);
-          }
-          const p = calculateFinalPrice(plan.price, currency);
-          return formatPrice(p.total, currency);
+          // Default USD
+          return formatPrice(plan.price, 'USD');
         })();
 
         return (
@@ -84,7 +84,7 @@ function PricingSection({
 
             <div className="plan-price-box">
               <div className="plan-price">
-                {finalPrice}
+                {displayPrice}
                 <span className="plan-period">{isOneTime ? "" : " /mes"}</span>
               </div>
               {plan.note && <div className="plan-note">{plan.note}</div>}
@@ -107,11 +107,9 @@ function PricingSection({
                 className={`plan-cta ${plan.popular || isUnlimited ? "primary" : "secondary"}`}
                 onClick={() => {
                   const checkoutPrice =
-                    currency === 'PEN' && plan.price_pen
-                      ? plan.price_pen
-                      : isOneTime
-                        ? plan.price
-                        : calculateFinalPrice(plan.price, currency).total;
+                    currency === 'PEN'
+                      ? (plan.price_pen || calculateFinalPrice(plan.price, 'PEN').total)
+                      : plan.price;
                   onCheckout(plan.id, plan.name, checkoutPrice, plan.type);
                 }}
               >
@@ -318,7 +316,7 @@ export default function Home() {
                             </div>
                             <button
                               className={`domain-cta ${domainMode === "transfer" ? "transfer-cta" : ""}`}
-                              onClick={() => openCheckout("domain-purchase", `${domainMode === "transfer" ? "Transferencia: " : ""}${res.domain}`, res.priceUSD)}
+                              onClick={() => openCheckout("domain-purchase", `${domainMode === "transfer" ? "Transferencia: " : ""}${res.domain}`, res.priceTotal)}
                             >
                               {domainMode === "register" ? "Registrar" : "Transferir"}
                             </button>
@@ -339,7 +337,7 @@ export default function Home() {
                     onClick={() => { setSearchQuery(tld); setDomainMode("register"); }}
                   >
                     <span className="dh-tld-ext">{tld}</span>
-                    <span className="dh-tld-price">{price}<small>/año</small></span>
+                    <span className="dh-tld-price">{formatPrice(currency === 'PEN' ? (price * USD_TO_PEN_RATE) : price, currency)}<small>/año</small></span>
                   </button>
                 ))}
               </div>
