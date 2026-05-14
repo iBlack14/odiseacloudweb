@@ -328,16 +328,37 @@ export default function Home() {
   const [selectedItem, setSelectedItem] = useState({ id: "", name: "", price: 0, domain: "", type: "" });
   
   const [formData, setFormData] = useState({ name: "", email: "", subject: "Cotización de Hosting", message: "" });
-  const [formStatus, setFormStatus] = useState<"idle" | "sending" | "sent">("idle");
+  const [formStatus, setFormStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormStatus("sending");
-    // Simulate API call
-    await new Promise(r => setTimeout(r, 1500));
-    setFormStatus("sent");
-    setFormData({ name: "", email: "", subject: "Cotización de Hosting", message: "" });
-    setTimeout(() => setFormStatus("idle"), 5000);
+
+    try {
+      // Reemplaza 'TU_ID_DE_FORMSPREE' con el ID que obtengas en formspree.io
+      const response = await fetch("https://formspree.io/f/mkoyazbo", {
+        method: "POST",
+        headers: { "Accept": "application/json" },
+        body: JSON.stringify({
+          Nombre: formData.name,
+          Email: formData.email,
+          Asunto: formData.subject,
+          Mensaje: formData.message
+        }),
+      });
+
+      if (response.ok) {
+        setFormStatus("sent");
+        setFormData({ name: "", email: "", subject: "Cotización de Hosting", message: "" });
+        setTimeout(() => setFormStatus("idle"), 6000);
+      } else {
+        setFormStatus("error");
+        setTimeout(() => setFormStatus("idle"), 4000);
+      }
+    } catch (err) {
+      setFormStatus("error");
+      setTimeout(() => setFormStatus("idle"), 4000);
+    }
   };
 
   useEffect(() => {
@@ -996,12 +1017,20 @@ export default function Home() {
                   
                   <button 
                     disabled={formStatus !== "idle"}
-                    className={`btn-primary ${formStatus === "sent" ? "success" : ""}`} 
-                    style={{ width: "100%", padding: "1rem", borderRadius: "12px", justifyContent: "center", position: "relative" }}
+                    className={`btn-primary ${formStatus === "sent" ? "success" : ""} ${formStatus === "error" ? "error" : ""}`} 
+                    style={{ 
+                      width: "100%", 
+                      padding: "1rem", 
+                      borderRadius: "12px", 
+                      justifyContent: "center", 
+                      position: "relative",
+                      background: formStatus === "error" ? "var(--danger)" : undefined
+                    }}
                   >
                     {formStatus === "idle" && <>Enviar mensaje <ArrowRight size={18} /></>}
                     {formStatus === "sending" && <span className="dh-spinner" />}
                     {formStatus === "sent" && <>¡Mensaje enviado con éxito! <Check size={18} /></>}
+                    {formStatus === "error" && <>Error al enviar, intenta de nuevo</>}
                   </button>
 
                   <p style={{ fontSize: "0.75rem", color: "var(--text-3)", textAlign: "center", marginTop: "1.25rem" }}>
