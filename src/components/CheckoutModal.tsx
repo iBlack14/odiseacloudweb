@@ -97,7 +97,7 @@ export default function CheckoutModal({ isOpen, onClose, planId, itemName, itemP
         const script = document.createElement("script");
         script.src = `https://static.micuentaweb.pe/static/js/krypton-client/V4.0/stable/kr-payment-form.min.js`;
         script.setAttribute("kr-public-key", apiPublicKey);
-        script.setAttribute("kr-post-url-success", window.location.origin);
+        script.setAttribute("kr-post-url-success", `${window.location.origin}/api/izipay/success`);
         script.onload = initIzipay;
         document.head.appendChild(script);
       } else {
