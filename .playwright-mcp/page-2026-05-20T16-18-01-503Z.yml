@@ -1,0 +1,378 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5] [cursor=pointer]:
+          - img "Odisea Cloud" [ref=e6]
+          - text: ODISEA
+          - generic [ref=e7]: .CLOUD
+        - generic [ref=e8]:
+          - link "Servicios" [ref=e9] [cursor=pointer]:
+            - /url: "#services"
+          - link "Dominios" [ref=e10] [cursor=pointer]:
+            - /url: "#domains"
+          - link "Planes" [ref=e11] [cursor=pointer]:
+            - /url: "#pricing"
+          - link "Soporte" [ref=e12] [cursor=pointer]:
+            - /url: "#"
+        - generic [ref=e13]:
+          - generic [ref=e14]:
+            - button "USD" [ref=e15] [cursor=pointer]
+            - button "PEN" [ref=e16] [cursor=pointer]
+          - link "Acceder" [ref=e18] [cursor=pointer]:
+            - /url: /login
+          - link "Empezar" [ref=e19] [cursor=pointer]:
+            - /url: "#pricing"
+            - text: Empezar
+            - img [ref=e20]
+    - generic [ref=e22]:
+      - generic [ref=e24]:
+        - generic [ref=e25]:
+          - img [ref=e26]
+          - generic [ref=e28]: INFRAESTRUCTURA DE PRÓXIMA GENERACIÓN
+        - heading "Tu proyecto merece el mejor espacio." [level=1] [ref=e29]:
+          - text: Tu proyecto merece
+          - text: el mejor espacio.
+        - paragraph [ref=e30]: Hosting de alto rendimiento, dominios globales y soluciones tecnológicas diseñadas para escalar tu visión digital.
+        - img "Cloud Infrastructure" [ref=e32]
+        - generic [ref=e33]:
+          - generic [ref=e34]:
+            - button "Registrar" [ref=e35] [cursor=pointer]:
+              - img [ref=e36]
+              - text: Registrar
+            - button "Transferir" [ref=e39] [cursor=pointer]:
+              - img [ref=e40]
+              - text: Transferir
+          - generic [ref=e43]:
+            - img [ref=e44]
+            - textbox "Escribe el dominio que deseas registrar…" [ref=e47]
+            - button "Verificar" [ref=e48] [cursor=pointer]
+          - generic [ref=e49]:
+            - button ".com $8.99/año" [ref=e50] [cursor=pointer]:
+              - generic [ref=e51]: .com
+              - generic [ref=e52]: $8.99/año
+            - button ".pe $29.00/año" [ref=e53] [cursor=pointer]:
+              - generic [ref=e54]: .pe
+              - generic [ref=e55]: $29.00/año
+            - button ".net $10.99/año" [ref=e56] [cursor=pointer]:
+              - generic [ref=e57]: .net
+              - generic [ref=e58]: $10.99/año
+            - button ".org $9.99/año" [ref=e59] [cursor=pointer]:
+              - generic [ref=e60]: .org
+              - generic [ref=e61]: $9.99/año
+            - button ".store $4.99/año" [ref=e62] [cursor=pointer]:
+              - generic [ref=e63]: .store
+              - generic [ref=e64]: $4.99/año
+            - button ".io $39.99/año" [ref=e65] [cursor=pointer]:
+              - generic [ref=e66]: .io
+              - generic [ref=e67]: $39.99/año
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - img [ref=e71]
+            - generic [ref=e73]: 5,000+
+            - generic [ref=e74]: Proyectos Activos
+          - generic [ref=e75]:
+            - img [ref=e77]
+            - generic [ref=e79]: 4.9/5
+            - generic [ref=e80]: Calificación promedio
+          - generic [ref=e81]:
+            - img [ref=e83]
+            - generic [ref=e86]: 99.9%
+            - generic [ref=e87]: Uptime garantizado
+          - generic [ref=e88]:
+            - img [ref=e90]
+            - generic [ref=e92]: SSL
+            - generic [ref=e93]: Gratis incluido
+        - generic [ref=e94]:
+          - link "Ver planes de hosting" [ref=e95] [cursor=pointer]:
+            - /url: "#pricing"
+            - text: Ver planes de hosting
+            - img [ref=e96]
+          - link "Desarrollo web" [ref=e98] [cursor=pointer]:
+            - /url: "#domains"
+            - text: Desarrollo web
+            - img [ref=e99]
+          - link "Área de clientes" [ref=e101] [cursor=pointer]:
+            - /url: /login
+            - text: Área de clientes
+            - img [ref=e102]
+      - generic [ref=e105]:
+        - generic [ref=e106]:
+          - heading "Nuestros servicios" [level=2] [ref=e107]
+          - paragraph [ref=e108]: Seis categorías estratégicas. Cada una con sus planes y precios claros.
+        - generic [ref=e109]:
+          - link "Hosting Compartido Para sitios, blogs y tiendas. Ideal para empezar. Ver planes" [ref=e110] [cursor=pointer]:
+            - /url: "#pricing"
+            - img [ref=e112]
+            - generic [ref=e122]:
+              - heading "Hosting Compartido" [level=3] [ref=e123]
+              - paragraph [ref=e124]: Para sitios, blogs y tiendas. Ideal para empezar.
+              - generic [ref=e125]:
+                - text: Ver planes
+                - img [ref=e126]
+          - link "Reseller WHM Vende hosting con tu propia marca. Panel WHM completo. Ver planes" [ref=e128] [cursor=pointer]:
+            - /url: "#pricing"
+            - img [ref=e130]
+            - generic [ref=e143]:
+              - heading "Reseller WHM" [level=3] [ref=e144]
+              - paragraph [ref=e145]: Vende hosting con tu propia marca. Panel WHM completo.
+              - generic [ref=e146]:
+                - text: Ver planes
+                - img [ref=e147]
+          - link "Webs Corporativas Diseño profesional llave en mano. Entrega garantizada. Ver planes" [ref=e149] [cursor=pointer]:
+            - /url: "#pricing"
+            - img [ref=e151]
+            - generic [ref=e161]:
+              - heading "Webs Corporativas" [level=3] [ref=e162]
+              - paragraph [ref=e163]: Diseño profesional llave en mano. Entrega garantizada.
+              - generic [ref=e164]:
+                - text: Ver planes
+                - img [ref=e165]
+          - link "Sistemas Web ERP, CRM, catálogos y sistemas a medida para tu empresa. Ver planes" [ref=e167] [cursor=pointer]:
+            - /url: "#pricing"
+            - img [ref=e169]
+            - generic [ref=e178]:
+              - heading "Sistemas Web" [level=3] [ref=e179]
+              - paragraph [ref=e180]: ERP, CRM, catálogos y sistemas a medida para tu empresa.
+              - generic [ref=e181]:
+                - text: Ver planes
+                - img [ref=e182]
+          - link "Complementos Mejora tu infraestructura con SSL, IPs dedicadas y más. Ver planes" [ref=e184] [cursor=pointer]:
+            - /url: "#pricing"
+            - img [ref=e186]
+            - generic [ref=e196]:
+              - heading "Complementos" [level=3] [ref=e197]
+              - paragraph [ref=e198]: Mejora tu infraestructura con SSL, IPs dedicadas y más.
+              - generic [ref=e199]:
+                - text: Ver planes
+                - img [ref=e200]
+          - link "Combos Especiales Dominio + Hosting en un solo paquete con precio reducido. Ver planes" [ref=e202] [cursor=pointer]:
+            - /url: "#pricing"
+            - img [ref=e204]
+            - generic [ref=e214]:
+              - heading "Combos Especiales" [level=3] [ref=e215]
+              - paragraph [ref=e216]: Dominio + Hosting en un solo paquete con precio reducido.
+              - generic [ref=e217]:
+                - text: Ver planes
+                - img [ref=e218]
+      - generic [ref=e221]:
+        - generic [ref=e222]:
+          - generic [ref=e223]:
+            - generic [ref=e224]:
+              - img [ref=e225]
+              - generic [ref=e227]: TECNOLOGÍA DE VANGUARDIA
+            - heading "Infraestructura diseñada para la máxima potencia." [level=2] [ref=e228]
+            - paragraph [ref=e229]: No solo vendemos hosting, operamos una red global de servidores NVMe optimizados para ofrecer tiempos de respuesta instantáneos y una disponibilidad del 99.9%.
+            - generic [ref=e230]:
+              - generic [ref=e231]:
+                - img [ref=e233]
+                - heading "Baja Latencia" [level=4] [ref=e235]
+                - paragraph [ref=e236]: Nodos estratégicos en Latam y USA para conexiones ultra rápidas.
+              - generic [ref=e237]:
+                - img [ref=e239]
+                - heading "Seguridad Nivel 4" [level=4] [ref=e241]
+                - paragraph [ref=e242]: Protección DDoS avanzada y redundancia de datos en tiempo real.
+          - generic [ref=e243]:
+            - img "Data Center Odisea" [ref=e245]
+            - generic [ref=e246]:
+              - img [ref=e248]
+              - generic [ref=e250]:
+                - generic [ref=e251]: Estado de Red
+                - generic [ref=e252]: 100% Operativo
+        - generic [ref=e253]:
+          - generic [ref=e254]:
+            - img [ref=e256]
+            - generic [ref=e276]:
+              - heading "Control Panel" [level=3] [ref=e277]
+              - paragraph [ref=e278]: Gestiona cada aspecto de tu hosting, correos y bases de datos desde un panel centralizado y fácil de usar.
+          - generic [ref=e279]:
+            - img "Global Network" [ref=e281]
+            - generic [ref=e282]:
+              - heading "Red Global" [level=3] [ref=e283]
+              - paragraph [ref=e284]: Nuestra arquitectura está distribuida globalmente para asegurar que tu contenido esté siempre cerca de tus clientes.
+          - generic [ref=e286]:
+            - heading "¿Listo para el siguiente nivel?" [level=3] [ref=e288]
+            - paragraph [ref=e289]: Únete a los más de 5,000 proyectos que confían en nuestra infraestructura.
+            - link "Comenzar Ahora" [ref=e290] [cursor=pointer]:
+              - /url: "#pricing"
+              - text: Comenzar Ahora
+              - img [ref=e291]
+      - generic [ref=e293]:
+        - generic [ref=e294]:
+          - heading "Planes y precios" [level=2] [ref=e295]
+          - paragraph [ref=e296]: Elige la categoría. Sin letra chica ni costos ocultos.
+        - generic [ref=e297]:
+          - button "Hosting Compartido" [ref=e298] [cursor=pointer]:
+            - img [ref=e299]
+            - text: Hosting Compartido
+          - button "Reseller WHM" [ref=e302] [cursor=pointer]:
+            - img [ref=e303]
+            - text: Reseller WHM
+          - button "Webs Corporativas" [ref=e305] [cursor=pointer]:
+            - img [ref=e306]
+            - text: Webs Corporativas
+          - button "Sistemas Web" [ref=e308] [cursor=pointer]:
+            - img [ref=e309]
+            - text: Sistemas Web
+          - button "Complementos" [ref=e313] [cursor=pointer]:
+            - img [ref=e314]
+            - text: Complementos
+          - button "Combos Especiales" [ref=e316] [cursor=pointer]:
+            - img [ref=e317]
+            - text: Combos Especiales
+        - paragraph [ref=e325]: Para sitios, blogs y tiendas. Ideal para empezar.
+      - generic [ref=e327]:
+        - generic [ref=e328]:
+          - heading "Hablemos de tu proyecto" [level=2] [ref=e329]
+          - paragraph [ref=e330]: ¿Tienes dudas o necesitas un presupuesto a medida? Escríbenos.
+        - generic [ref=e331]:
+          - generic [ref=e332]:
+            - heading "Información de contacto" [level=4] [ref=e333]
+            - generic [ref=e334]:
+              - generic [ref=e335]:
+                - img [ref=e337]
+                - generic [ref=e340]:
+                  - generic [ref=e341]: Email de Ventas
+                  - generic [ref=e342]: ventas@odiseacloud.com
+              - generic [ref=e343]:
+                - img [ref=e345]
+                - generic [ref=e347]:
+                  - generic [ref=e348]: WhatsApp Ventas
+                  - generic [ref=e349]: Respuesta inmediata en horario comercial.
+              - generic [ref=e350]:
+                - img [ref=e352]
+                - generic [ref=e354]:
+                  - generic [ref=e355]: Soporte Técnico
+                  - generic [ref=e356]: soporte@odiseacloud.com
+            - generic [ref=e357]:
+              - heading "¿Buscas algo específico?" [level=5] [ref=e358]
+              - paragraph [ref=e359]: Si necesitas una solución enterprise o infraestructura dedicada, menciona los detalles y un especialista te contactará.
+          - generic [ref=e360]:
+            - generic [ref=e361]:
+              - generic [ref=e362]:
+                - generic [ref=e363]: Nombre o Empresa
+                - textbox "Tu nombre o razón social" [ref=e364]
+              - generic [ref=e365]:
+                - generic [ref=e366]: Correo electrónico
+                - textbox "Correo electrónico" [ref=e367]
+            - generic [ref=e368]:
+              - generic [ref=e369]: ¿En qué podemos ayudarte?
+              - combobox [ref=e370] [cursor=pointer]:
+                - option "Cotización de Hosting" [selected]
+                - option "Desarrollo Web / Sistema"
+                - option "Soporte Técnico"
+                - option "Otro asunto"
+            - generic [ref=e371]:
+              - generic [ref=e372]: Mensaje
+              - textbox "Cuéntanos brevemente qué necesitas..." [ref=e373]
+            - button "Enviar mensaje" [ref=e374]:
+              - text: Enviar mensaje
+              - img [ref=e375]
+            - paragraph [ref=e377]: Al enviar este formulario, aceptas nuestros términos de privacidad.
+      - generic [ref=e379]:
+        - generic [ref=e380]:
+          - generic [ref=e381]:
+            - generic [ref=e382]:
+              - img "Odisea Cloud" [ref=e383]
+              - text: ODISEA
+              - generic [ref=e384]: .CLOUD
+            - paragraph [ref=e385]: Hosting, desarrollo web y sistemas. Todo en un solo proveedor para tu negocio digital en Latinoamérica.
+            - generic [ref=e386]:
+              - link [ref=e387] [cursor=pointer]:
+                - /url: "#"
+                - img [ref=e388]
+              - link [ref=e390] [cursor=pointer]:
+                - /url: "#"
+                - img [ref=e391]
+              - link [ref=e395] [cursor=pointer]:
+                - /url: "#"
+                - img [ref=e396]
+              - link [ref=e399] [cursor=pointer]:
+                - /url: "#"
+                - img [ref=e400]
+            - generic [ref=e402]:
+              - generic [ref=e403]:
+                - img [ref=e404]
+                - heading "Pagos 100% Seguros" [level=5] [ref=e406]
+              - generic [ref=e407]:
+                - img "Visa" [ref=e409]
+                - img "Mastercard" [ref=e411]
+                - img "Yape" [ref=e413]
+                - img "Plin" [ref=e415]
+          - generic [ref=e416]:
+            - heading "Hosting" [level=5] [ref=e417]
+            - list [ref=e418]:
+              - listitem [ref=e419]:
+                - link "Hosting Compartido" [ref=e420] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e421]:
+                - link "Reseller WHM" [ref=e422] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e423]:
+                - link "Registro de Dominios" [ref=e424] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e425]:
+                - link "Certificados SSL" [ref=e426] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e427]:
+                - link "Complementos" [ref=e428] [cursor=pointer]:
+                  - /url: "#pricing"
+              - listitem [ref=e429]:
+                - link "Combos Especiales" [ref=e430] [cursor=pointer]:
+                  - /url: "#pricing"
+          - generic [ref=e431]:
+            - heading "Desarrollo" [level=5] [ref=e432]
+            - list [ref=e433]:
+              - listitem [ref=e434]:
+                - link "Webs Corporativas" [ref=e435] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e436]:
+                - link "E-commerce" [ref=e437] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e438]:
+                - link "Sistemas de Gestión" [ref=e439] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e440]:
+                - link "CRM y ERP" [ref=e441] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e442]:
+                - link "Integraciones API" [ref=e443] [cursor=pointer]:
+                  - /url: "#"
+          - generic [ref=e444]:
+            - heading "Soporte" [level=5] [ref=e445]
+            - list [ref=e446]:
+              - listitem [ref=e447]:
+                - link "Base de Conocimiento" [ref=e448] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e449]:
+                - link "Estado de Red" [ref=e450] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e451]:
+                - link "Tickets" [ref=e452] [cursor=pointer]:
+                  - /url: "#"
+              - listitem [ref=e453]:
+                - link "Área de Clientes" [ref=e454] [cursor=pointer]:
+                  - /url: /login
+          - generic [ref=e455]:
+            - heading "Contacto" [level=5] [ref=e456]
+            - list [ref=e457]:
+              - listitem [ref=e458]:
+                - link "ventas@odiseacloud.com" [ref=e459] [cursor=pointer]:
+                  - /url: mailto:ventas@odiseacloud.com
+                  - img [ref=e460]
+                  - text: ventas@odiseacloud.com
+              - listitem [ref=e463]:
+                - link "soporte@odiseacloud.com" [ref=e464] [cursor=pointer]:
+                  - /url: mailto:soporte@odiseacloud.com
+                  - img [ref=e465]
+                  - text: soporte@odiseacloud.com
+        - generic [ref=e467]:
+          - generic [ref=e468]: © 2026 Odisea Cloud. Todos los derechos reservados.
+          - generic [ref=e469]:
+            - link "Términos de Servicio" [ref=e470] [cursor=pointer]:
+              - /url: "#"
+            - link "Política de Privacidad" [ref=e471] [cursor=pointer]:
+              - /url: "#"
+            - link "SLA" [ref=e472] [cursor=pointer]:
+              - /url: "#"
+  - alert [ref=e473]

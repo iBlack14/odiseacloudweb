@@ -1,0 +1,5 @@
+[  279603ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ http://localhost:3000/infra-network.png:0
+[  279621ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ http://localhost:3000/hero-cloud.png:0
+[  279651ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ http://localhost:3000/_next/static/css/app/layout.css?v=1779293512819:0
+[  279658ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ http://localhost:3000/infra-datacenter.png:0
+[  279661ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ http://localhost:3000/logo.png:0

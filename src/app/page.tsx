@@ -479,7 +479,7 @@ export default function Home() {
 
             {/* Optional Hero Image for realism */}
             <div style={{ position: "relative", width: "100%", zIndex: 0 }}>
-              <div style={{ position: "absolute", right: "-30%", top: "-10%", width: "600px", zIndex: -1, opacity: 0.8, filter: "blur(2px)" }}>
+              <div className="hero-cloud-art" style={{ position: "absolute", right: "-30%", top: "-10%", width: "600px", zIndex: -1, opacity: 0.8, filter: "blur(2px)" }}>
                 <img src="/hero-cloud.png" alt="Cloud Infrastructure" style={{ width: "100%", maskImage: "radial-gradient(black, transparent 80%)" }} />
               </div>
             </div>
@@ -640,7 +640,7 @@ export default function Home() {
               <h2 style={{ fontSize: "clamp(1.8rem, 3.5vw, 2.5rem)", marginBottom: "0.5rem" }}>Nuestros servicios</h2>
               <p style={{ color: "var(--text-2)", fontSize: "1.05rem" }}>Seis categorías estratégicas. Cada una con sus planes y precios claros.</p>
             </div>
-            <div className="services-overview-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.5rem", background: "transparent", border: "none" }}>
+            <div className="services-overview-grid services-cards-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.5rem", background: "transparent", border: "none" }}>
               {SERVICE_TABS.map((tab) => (
                 <a key={tab.id} href="#pricing" className="service-card" onClick={(e) => {
                   e.preventDefault();
@@ -682,7 +682,7 @@ export default function Home() {
           <div style={{ position: "absolute", top: 0, right: 0, width: "40%", height: "100%", background: "radial-gradient(circle at center, oklch(0.68 0.18 245 / 0.03) 0%, transparent 70%)", pointerEvents: "none" }} />
           
           <div style={{ maxWidth: "1280px", margin: "0 auto", position: "relative", zIndex: 1 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4rem", alignItems: "center", marginBottom: "5rem" }}>
+            <div className="infra-hero-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4rem", alignItems: "center", marginBottom: "5rem" }}>
               <motion.div
                 initial={{ opacity: 0, x: -30 }}
                 whileInView={{ opacity: 1, x: 0 }}
@@ -698,7 +698,7 @@ export default function Home() {
                 <p style={{ color: "var(--text-2)", fontSize: "1.1rem", marginBottom: "2rem", lineHeight: 1.6 }}>
                   No solo vendemos hosting, operamos una red global de servidores NVMe optimizados para ofrecer tiempos de respuesta instantáneos y una disponibilidad del 99.9%.
                 </p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+                <div className="infra-feature-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
                   <div style={{ padding: "1.5rem", background: "white", borderRadius: "16px", border: "1px solid var(--border)" }}>
                     <div style={{ color: "var(--accent)", marginBottom: "0.75rem" }}><Zap size={24} /></div>
                     <h4 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>Baja Latencia</h4>
@@ -755,7 +755,7 @@ export default function Home() {
               </motion.div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "2rem" }}>
+            <div className="infra-cards-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "2rem" }}>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -906,7 +906,7 @@ export default function Home() {
                <h2 style={{ fontSize: "clamp(2rem, 4vw, 3rem)", marginBottom: "1rem" }}>Hablemos de tu proyecto</h2>
                <p style={{ color: "var(--text-2)", fontSize: "1.1rem" }}>¿Tienes dudas o necesitas un presupuesto a medida? Escríbenos.</p>
              </div>
-             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "4rem", alignItems: "start" }}>
+             <div className="contact-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "4rem", alignItems: "start" }}>
                <motion.div 
                  initial={{ opacity: 0, x: -20 }}
                  whileInView={{ opacity: 1, x: 0 }}
@@ -960,7 +960,7 @@ export default function Home() {
                    overflow: "hidden"
                  }}
                >
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+                  <div className="contact-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
                     <div className="form-group">
                       <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: "0.5rem", color: "var(--text-3)" }}>Nombre o Empresa</label>
                       <input 
@@ -1174,5 +1174,4 @@ export default function Home() {
     </main>
   );
 }
-
 

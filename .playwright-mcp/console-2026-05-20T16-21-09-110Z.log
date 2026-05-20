@@ -1,0 +1,6 @@
+[     913ms] [ERROR] Access to fetch at 'http://api.odiseacloud.com/api/v1/public/plans' from origin 'http://127.0.0.1:3002' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3002/:0
+[     913ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://api.odiseacloud.com/api/v1/public/plans:0
+[     913ms] [WARNING] [plans:fetch:error] Fallback total @ http://127.0.0.1:3002/_next/static/chunks/app/page-4200374236c15cca.js:0
+[   19916ms] [ERROR] Access to fetch at 'http://api.odiseacloud.com/api/v1/public/plans' from origin 'http://127.0.0.1:3002' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:3002/:0
+[   19916ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://api.odiseacloud.com/api/v1/public/plans:0
+[   19917ms] [WARNING] [plans:fetch:error] Fallback total @ http://127.0.0.1:3002/_next/static/chunks/app/page-4200374236c15cca.js:0
