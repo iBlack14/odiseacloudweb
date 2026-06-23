@@ -3,6 +3,9 @@
 /.pnp
 .pnp.js
 /.gemini
+/.env
+/.playwright-mcp
+
 
 # testing
 /coverage
