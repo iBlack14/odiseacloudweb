@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Required for optimized Docker/container deployments
-  output: 'standalone',
+  // Use standard start command to serve static assets and public folder automatically
 };
 
 export default nextConfig;
