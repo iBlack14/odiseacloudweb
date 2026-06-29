@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, Check, Search, Server, Shield, Globe,
@@ -9,7 +10,8 @@ import {
 } from "lucide-react";
 import { searchDomain, DomainAvailability } from "@/lib/domains";
 import CheckoutModal from "@/components/CheckoutModal";
-import { calculateFinalPrice, formatPrice, Currency, USD_TO_PEN_RATE } from "@/lib/pricing";
+import { calculateFinalPrice, formatPrice, Currency } from "@/lib/pricing";
+import { usdToPen, FALLBACK_USD_TO_PEN, ExchangeRateResult } from "@/lib/exchange-rate";
 import { fetchOdiseaPlans, HostingPlan } from "@/lib/plans";
 import { useQuery } from "@tanstack/react-query";
 
@@ -34,7 +36,7 @@ type ServiceTab = "shared" | "reseller" | "web-design" | "web-system" | "addon" 
 const SERVICE_TABS: { id: ServiceTab; label: string; icon: React.ReactNode; tagline: string; illustration?: React.ReactNode }[] = [
   { id: "shared",     label: "Hosting Compartido", icon: <Server size={18} />,  tagline: "Para sitios, blogs y tiendas. Ideal para empezar.",
     illustration: (
-      <svg width="100%" height="100%" viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <svg width="100%" height="100%" viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
         <defs>
           <linearGradient id="gradShared" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#f0fdfa" />
@@ -64,7 +66,7 @@ const SERVICE_TABS: { id: ServiceTab; label: string; icon: React.ReactNode; tagl
   },
   { id: "reseller",   label: "Reseller WHM",        icon: <Shield size={18} />,  tagline: "Vende hosting con tu propia marca. Panel WHM completo.",
     illustration: (
-      <svg width="100%" height="100%" viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <svg width="100%" height="100%" viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
         <defs>
           <linearGradient id="gradResell" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#fff1f2" />
@@ -92,7 +94,7 @@ const SERVICE_TABS: { id: ServiceTab; label: string; icon: React.ReactNode; tagl
   },
   { id: "web-design", label: "Webs Corporativas",   icon: <Monitor size={18} />, tagline: "Diseño profesional llave en mano. Entrega garantizada.", 
     illustration: (
-      <svg width="100%" height="100%" viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <svg width="100%" height="100%" viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
         <defs>
           <linearGradient id="gradWeb" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#f0f7ff" />
@@ -118,7 +120,7 @@ const SERVICE_TABS: { id: ServiceTab; label: string; icon: React.ReactNode; tagl
   },
   { id: "web-system", label: "Sistemas Web",        icon: <Code2 size={18} />,   tagline: "ERP, CRM, catálogos y sistemas a medida para tu empresa.", 
     illustration: (
-      <svg width="100%" height="100%" viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <svg width="100%" height="100%" viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
         <defs>
           <linearGradient id="gradSys" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#fdf8ff" />
@@ -144,7 +146,7 @@ const SERVICE_TABS: { id: ServiceTab; label: string; icon: React.ReactNode; tagl
   },
   { id: "addon",      label: "Complementos",       icon: <PlusCircle size={18} />, tagline: "Mejora tu infraestructura con SSL, IPs dedicadas y más.",
     illustration: (
-      <svg width="100%" height="100%" viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <svg width="100%" height="100%" viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
         <defs>
           <linearGradient id="gradAddon" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#fffbeb" />
@@ -169,7 +171,7 @@ const SERVICE_TABS: { id: ServiceTab; label: string; icon: React.ReactNode; tagl
   },
   { id: "combo",      label: "Combos Especiales",   icon: <Package size={18} />, tagline: "Dominio + Hosting en un solo paquete con precio reducido.",
     illustration: (
-      <svg width="100%" height="100%" viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+      <svg width="100%" height="100%" viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
         <defs>
           <linearGradient id="gradCombo" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#f4f4f5" />
@@ -198,15 +200,21 @@ const SERVICE_TABS: { id: ServiceTab; label: string; icon: React.ReactNode; tagl
   },
 ];
 
+function planPenAmount(plan: HostingPlan, penRate: number): number {
+  return plan.price_pen ?? usdToPen(plan.price, penRate);
+}
+
 function PricingSection({
   plans,
   type,
   currency,
+  penRate,
   onCheckout,
 }: {
   plans: HostingPlan[];
   type: ServiceTab;
   currency: Currency;
+  penRate: number;
   onCheckout: (id: string, name: string, price: number, type: string) => void;
 }) {
   const filtered = plans.filter((p) => p.type === type);
@@ -233,7 +241,7 @@ function PricingSection({
   const scrollRight = () => scrollRef.current?.scrollBy({ left: 350, behavior: 'smooth' });
 
   return (
-    <div className="pricing-grid-container" style={{ position: "relative" }}>
+    <div className="pricing-grid-container">
       {filtered.length > 1 && (
         <>
           <button className="carousel-nav left" onClick={scrollLeft} aria-label="Anterior">
@@ -251,7 +259,7 @@ function PricingSection({
           // Logic for Display Price
           const displayPrice = (() => {
             if (currency === 'PEN') {
-              const penValue = plan.price_pen || calculateFinalPrice(plan.price, 'PEN').total;
+              const penValue = planPenAmount(plan, penRate);
               return formatPrice(penValue, 'PEN');
             }
             // Default USD
@@ -297,7 +305,7 @@ function PricingSection({
                   onClick={() => {
                     const checkoutPrice =
                       currency === 'PEN'
-                        ? (plan.price_pen || calculateFinalPrice(plan.price, 'PEN').total)
+                        ? planPenAmount(plan, penRate)
                         : plan.price;
                     onCheckout(plan.id, plan.name, checkoutPrice, plan.type);
                   }}
@@ -329,6 +337,7 @@ export default function Home() {
   
   const [formData, setFormData] = useState({ name: "", email: "", subject: "Cotización de Hosting", message: "" });
   const [formStatus, setFormStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -367,10 +376,35 @@ export default function Home() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    document.body.style.overflow = isMenuOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [isMenuOpen]);
+
   const { data: plans = [] } = useQuery({
     queryKey: ["plans"],
     queryFn: fetchOdiseaPlans,
   });
+
+  const { data: exchangeRate } = useQuery({
+    queryKey: ["exchange-rate"],
+    queryFn: async (): Promise<ExchangeRateResult> => {
+      const response = await fetch("/api/exchange-rate");
+      if (!response.ok) throw new Error("Error al obtener tipo de cambio");
+      const json = await response.json();
+      return {
+        rate: json.rate ?? FALLBACK_USD_TO_PEN,
+        source: json.source ?? "fallback",
+        date: json.date ?? new Date().toISOString().slice(0, 10),
+        base: "USD",
+        quote: "PEN",
+      };
+    },
+    staleTime: 60 * 60 * 1000,
+    retry: 2,
+  });
+
+  const penRate = exchangeRate?.rate ?? FALLBACK_USD_TO_PEN;
 
   const openCheckout = (id: string, name: string, basePrice: number, type: string = "shared") => {
     setSelectedItem({ id, name, price: basePrice, domain: searchQuery, type });
@@ -392,8 +426,6 @@ export default function Home() {
   };
 
   const currentTab = SERVICE_TABS.find((t) => t.id === activeTab)!;
-
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
     <main>
@@ -420,9 +452,16 @@ export default function Home() {
           </div>
 
           <div className="nav-right">
-            <div className="currency-toggle">
-              <button className={`currency-btn ${currency === "USD" ? "active" : ""}`} onClick={() => setCurrency("USD")}>USD</button>
-              <button className={`currency-btn ${currency === "PEN" ? "active" : ""}`} onClick={() => setCurrency("PEN")}>PEN</button>
+            <div className="currency-toggle-wrap">
+              <div className="currency-toggle">
+                <button className={`currency-btn ${currency === "USD" ? "active" : ""}`} onClick={() => setCurrency("USD")}>USD</button>
+                <button className={`currency-btn ${currency === "PEN" ? "active" : ""}`} onClick={() => setCurrency("PEN")}>PEN</button>
+              </div>
+              {currency === "PEN" && exchangeRate && (
+                <span className="fx-rate-hint" title={`Fuente: ${exchangeRate.source} · ${exchangeRate.date}`}>
+                  1 USD = S/ {penRate.toFixed(2)}
+                </span>
+              )}
             </div>
             <div className="desktop-only-nav">
               <a href="/login" className="btn-ghost" style={{ border: 'none' }}>Acceder</a>
@@ -444,67 +483,61 @@ export default function Home() {
         {/* ══════════════════════════════════════════
             HERO — Domain search as centrepiece
         ══════════════════════════════════════════ */}
-        <section className="domain-hero" id="home" style={{ background: "radial-gradient(circle at top, oklch(0.68 0.18 245 / 0.03) 0%, transparent 70%)" }}>
-          {/* Subtle background glow */}
-          <div className="site-glow" style={{ opacity: 0.4 }}></div>
+        <section className="domain-hero domain-hero-gradient" id="home">
+          <div className="domain-hero-bg" aria-hidden="true">
+            <div className="hero-cloud-art">
+              <img src="/hero-cloud.png" alt="" />
+            </div>
+            <div className="domain-hero-orb domain-hero-orb--left" />
+            <div className="domain-hero-orb domain-hero-orb--right" />
+          </div>
 
           <motion.div
-            className="domain-hero-inner"
-            initial={{ opacity: 0, y: 20 }}
+            className="domain-hero-inner domain-hero-inner-layer"
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            style={{ position: "relative", zIndex: 1 }}
           >
-            {/* Eyebrow */}
-            <div className="hero-eyebrow" style={{ background: "white", border: "1px solid var(--border)", color: "var(--accent)", padding: "8px 20px", borderRadius: "100px", boxShadow: "var(--shadow-sm)" }}>
-              <Zap size={12} fill="currentColor" /> <span style={{ letterSpacing: "0.05em", fontWeight: 700 }}>INFRAESTRUCTURA DE PRÓXIMA GENERACIÓN</span>
-            </div>
-
-            {/* Headline */}
-            <h1 className="domain-hero-h1" style={{ fontSize: "clamp(2.5rem, 8vw, 4.5rem)", marginBottom: "1.5rem", maxWidth: "800px", margin: "0 auto 1.5rem" }}>
-              Tu proyecto merece<br />
-              <span style={{ 
-                background: "linear-gradient(135deg, var(--text-1) 20%, var(--accent) 100%)", 
-                WebkitBackgroundClip: "text", 
-                WebkitTextFillColor: "transparent",
-                fontWeight: 900
-              }}>
-                el mejor espacio.
-              </span>
-            </h1>
-            
-            <p className="domain-hero-sub" style={{ fontSize: "1.15rem", maxWidth: "600px", color: "var(--text-2)", lineHeight: 1.6, margin: "0 auto 3rem" }}>
-              Hosting de alto rendimiento, dominios globales y soluciones tecnológicas diseñadas para escalar tu visión digital.
-            </p>
-
-            {/* Optional Hero Image for realism */}
-            <div style={{ position: "relative", width: "100%", zIndex: 0 }}>
-              <div className="hero-cloud-art" style={{ position: "absolute", right: "-30%", top: "-10%", width: "600px", zIndex: -1, opacity: 0.8, filter: "blur(2px)" }}>
-                <img src="/hero-cloud.png" alt="Cloud Infrastructure" style={{ width: "100%", maskImage: "radial-gradient(black, transparent 80%)" }} />
+            <motion.div
+              className="domain-hero-copy"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <div className="hero-eyebrow domain-hero-eyebrow">
+                <Zap size={12} fill="currentColor" />
+                <span>Infraestructura de próxima generación</span>
               </div>
-            </div>
 
-            {/* Search widget */}
-            <div className="dh-search-card" id="domains" style={{ 
-              marginTop: "0", 
-              background: "rgba(255, 255, 255, 0.4)",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
-              border: "1px solid rgba(255, 255, 255, 0.5)",
-              boxShadow: "0 30px 60px -12px rgba(0,0,0,0.08), 0 0 0 1px rgba(255,255,255,0.4)",
-              borderRadius: "32px"
-            }}>
-              {/* Subtle decorative pattern */}
-              <div style={{ position: "absolute", inset: 0, opacity: 0.02, pointerEvents: "none", backgroundImage: "radial-gradient(circle at 2px 2px, black 1px, transparent 0)", backgroundSize: "32px 32px" }}></div>
+              <h1 className="domain-hero-h1">
+                Tu proyecto merece
+                <span className="gradient-text"> el mejor espacio.</span>
+              </h1>
+
+              <p className="domain-hero-sub">
+                Hosting de alto rendimiento, dominios globales y soluciones tecnológicas diseñadas para escalar tu visión digital.
+              </p>
+            </motion.div>
+
+            <motion.div
+              className="dh-search-card dh-search-card-glass"
+              id="domains"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <div className="dh-search-card-pattern" />
 
               <div className="dh-tabs">
                 <button
+                  type="button"
                   className={`dh-tab ${domainMode === "register" ? "active" : ""}`}
                   onClick={() => { setDomainMode("register"); setResults([]); setSearchQuery(""); }}
                 >
                   <Globe size={14} /> Registrar
                 </button>
                 <button
+                  type="button"
                   className={`dh-tab ${domainMode === "transfer" ? "active" : ""}`}
                   onClick={() => { setDomainMode("transfer"); setResults([]); setSearchQuery(""); }}
                 >
@@ -549,8 +582,7 @@ export default function Home() {
               <AnimatePresence>
                 {results.length > 0 && (
                   <motion.div
-                    className="domain-results"
-                    style={{ margin: "1rem 0 0", borderRadius: "10px" }}
+                    className="domain-results domain-results--hero"
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
@@ -593,121 +625,128 @@ export default function Home() {
                     onClick={() => { setSearchQuery(tld); setDomainMode("register"); }}
                   >
                     <span className="dh-tld-ext">{tld}</span>
-                    <span className="dh-tld-price">{formatPrice(currency === 'PEN' ? (price * USD_TO_PEN_RATE) : price, currency)}<small>/año</small></span>
+                    <span className="dh-tld-price">{formatPrice(currency === 'PEN' ? usdToPen(price, penRate) : price, currency)}<small>/año</small></span>
                   </button>
                 ))}
               </div>
-            </div>
+            </motion.div>
 
-            {/* Trust stats */}
-            <div className="dh-stats" style={{ border: "none", padding: "4rem 0 2rem" }}>
-              <div className="dh-stat">
-                <div className="dh-stat-icon"><Shield size={18} /></div>
-                <div className="dh-stat-value">5,000+</div>
-                <div className="dh-stat-label">Proyectos Activos</div>
-              </div>
-              <div className="dh-stat">
-                <div className="dh-stat-icon"><Star size={18} /></div>
-                <div className="dh-stat-value">4.9/5</div>
-                <div className="dh-stat-label">Calificación promedio</div>
-              </div>
-              <div className="dh-stat">
-                <div className="dh-stat-icon"><Clock size={18} /></div>
-                <div className="dh-stat-value">99.9%</div>
-                <div className="dh-stat-label">Uptime garantizado</div>
-              </div>
-              <div className="dh-stat">
-                <div className="dh-stat-icon"><Zap size={18} /></div>
-                <div className="dh-stat-value">SSL</div>
-                <div className="dh-stat-label">Gratis incluido</div>
-              </div>
-            </div>
+            <motion.div
+              className="dh-stats dh-stats--polished"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            >
+              {TRUST_STATS.map((stat) => (
+                <div className="dh-stat" key={stat.label}>
+                  <div className="dh-stat-icon">{stat.icon}</div>
+                  <div className="dh-stat-value">{stat.value}</div>
+                  <div className="dh-stat-label">{stat.label}</div>
+                </div>
+              ))}
+            </motion.div>
 
-            <div className="dh-secondary-ctas" style={{ marginTop: "1rem" }}>
-              <a href="#pricing">Ver planes de hosting <ChevronRight size={14} /></a>
-              <span className="dh-cta-divider"></span>
-              <a href="#domains">Desarrollo web <ChevronRight size={14} /></a>
-              <span className="dh-cta-divider"></span>
-              <a href="/login">Área de clientes <ChevronRight size={14} /></a>
-            </div>
+            <motion.div
+              className="dh-secondary-ctas"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.5 }}
+            >
+              <a href="#pricing" className="dh-secondary-pill">Ver planes de hosting <ChevronRight size={14} /></a>
+              <a href="#services" className="dh-secondary-pill">Desarrollo web <ChevronRight size={14} /></a>
+              <a href="/login" className="dh-secondary-pill">Área de clientes <ChevronRight size={14} /></a>
+            </motion.div>
           </motion.div>
         </section>
 
         {/* ── Services Overview ── */}
-        <section id="services" style={{ borderTop: "1px solid var(--border)", padding: "5rem 2rem" }}>
-          <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
-            <div style={{ marginBottom: "3rem" }}>
-              <h2 style={{ fontSize: "clamp(1.8rem, 3.5vw, 2.5rem)", marginBottom: "0.5rem" }}>Nuestros servicios</h2>
-              <p style={{ color: "var(--text-2)", fontSize: "1.05rem" }}>Seis categorías estratégicas. Cada una con sus planes y precios claros.</p>
-            </div>
-            <div className="services-overview-grid services-cards-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.5rem", background: "transparent", border: "none" }}>
-              {SERVICE_TABS.map((tab) => (
-                <a key={tab.id} href="#pricing" className="service-card" onClick={(e) => {
-                  e.preventDefault();
-                  setActiveTab(tab.id);
-                  document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
-                }} style={{ 
-                  border: "1px solid var(--border)", 
-                  borderRadius: "20px", 
-                  overflow: "hidden", 
-                  padding: 0,
-                  display: "flex",
-                  flexDirection: "column",
-                  boxShadow: "var(--shadow-sm)"
-                }}>
+        <section id="services" className="services-section">
+          <div className="services-section-glow" aria-hidden="true" />
+          <div className="section-container services-section-inner">
+            <motion.div
+              className="services-section-header"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <div className="services-eyebrow">
+                <Package size={12} />
+                <span>Catálogo completo</span>
+              </div>
+              <h2>Nuestros servicios</h2>
+              <p>Seis categorías estratégicas. Cada una con sus planes y precios claros.</p>
+            </motion.div>
+            <div className="services-cards-grid">
+              {SERVICE_TABS.map((tab, index) => (
+                <motion.a
+                  key={tab.id}
+                  href="#pricing"
+                  className={`service-card service-card-modern svc-${tab.id}`}
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ duration: 0.45, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setActiveTab(tab.id);
+                    document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
                   {tab.illustration && (
-                    <div className="svc-img-wrapper" style={{ width: "100%", height: "160px", overflow: "hidden", borderBottom: "1px solid var(--border)" }}>
+                    <div className="svc-img-wrapper">
                       {tab.illustration}
                     </div>
                   )}
-                  <div style={{ padding: "2rem", flex: 1, display: "flex", flexDirection: "column" }}>
-                    <h3 style={{ fontSize: "1.2rem", marginBottom: "0.5rem" }}>{tab.label}</h3>
-                    <p style={{ fontSize: "0.95rem", color: "var(--text-2)", lineHeight: 1.6, flex: 1 }}>{tab.tagline}</p>
-                    <span className="service-card-link" style={{ marginTop: "1.5rem" }}>Ver planes <ArrowRight size={14} /></span>
+                  <div className="service-card-body">
+                    <div className="service-card-top">
+                      <div className="service-card-icon">{tab.icon}</div>
+                      <h3>{tab.label}</h3>
+                    </div>
+                    <p>{tab.tagline}</p>
+                    <span className="service-card-link">
+                      Ver planes <ArrowRight size={14} />
+                    </span>
                   </div>
-                </a>
+                </motion.a>
               ))}
             </div>
           </div>
-          <style dangerouslySetInnerHTML={{__html: `
-            .svc-img-wrapper > svg { transition: transform 0.4s ease; }
-            .service-card:hover .svc-img-wrapper > svg { transform: scale(1.05); }
-          `}} />
         </section>
 
 
         {/* ── Infrastructure & Control Panel ── */}
-        <section id="infrastructure" style={{ padding: "8rem 2rem", background: "var(--bg-raised)", position: "relative", overflow: "hidden" }}>
+        <section id="infrastructure" className="infra-section">
           {/* Background decoration */}
-          <div style={{ position: "absolute", top: 0, right: 0, width: "40%", height: "100%", background: "radial-gradient(circle at center, oklch(0.68 0.18 245 / 0.03) 0%, transparent 70%)", pointerEvents: "none" }} />
+          <div className="infra-section-glow" />
           
-          <div style={{ maxWidth: "1280px", margin: "0 auto", position: "relative", zIndex: 1 }}>
-            <div className="infra-hero-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4rem", alignItems: "center", marginBottom: "5rem" }}>
+          <div className="section-container" style={{ position: "relative", zIndex: 1 }}>
+            <div className="infra-hero-grid">
               <motion.div
                 initial={{ opacity: 0, x: -30 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6 }}
               >
-                <div className="hero-eyebrow" style={{ marginBottom: "1.5rem", display: "inline-flex" }}>
+                <div className="hero-eyebrow" style={{ marginBottom: "1rem", display: "inline-flex" }}>
                   <Shield size={12} fill="currentColor" /> <span style={{ letterSpacing: "0.05em", fontWeight: 700 }}>TECNOLOGÍA DE VANGUARDIA</span>
                 </div>
-                <h2 style={{ fontSize: "clamp(2rem, 4vw, 3rem)", marginBottom: "1.5rem", lineHeight: 1.1 }}>
+                <h2 style={{ fontSize: "clamp(2rem, 4vw, 3rem)", marginBottom: "1rem", lineHeight: 1.1 }}>
                   Infraestructura diseñada para la <span style={{ color: "var(--accent)" }}>máxima potencia.</span>
                 </h2>
-                <p style={{ color: "var(--text-2)", fontSize: "1.1rem", marginBottom: "2rem", lineHeight: 1.6 }}>
+                <p style={{ color: "var(--text-2)", fontSize: "1.1rem", marginBottom: "1.25rem", lineHeight: 1.6 }}>
                   No solo vendemos hosting, operamos una red global de servidores NVMe optimizados para ofrecer tiempos de respuesta instantáneos y una disponibilidad del 99.9%.
                 </p>
-                <div className="infra-feature-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
-                  <div style={{ padding: "1.5rem", background: "white", borderRadius: "16px", border: "1px solid var(--border)" }}>
-                    <div style={{ color: "var(--accent)", marginBottom: "0.75rem" }}><Zap size={24} /></div>
-                    <h4 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>Baja Latencia</h4>
-                    <p style={{ fontSize: "0.85rem", color: "var(--text-3)" }}>Nodos estratégicos en Latam y USA para conexiones ultra rápidas.</p>
+                <div className="infra-feature-grid">
+                  <div className="infra-feature-card">
+                    <div className="icon"><Zap size={24} /></div>
+                    <h4>Baja Latencia</h4>
+                    <p>Nodos estratégicos en Latam y USA para conexiones ultra rápidas.</p>
                   </div>
-                  <div style={{ padding: "1.5rem", background: "white", borderRadius: "16px", border: "1px solid var(--border)" }}>
-                    <div style={{ color: "var(--accent)", marginBottom: "0.75rem" }}><Shield size={24} /></div>
-                    <h4 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>Seguridad Nivel 4</h4>
-                    <p style={{ fontSize: "0.85rem", color: "var(--text-3)" }}>Protección DDoS avanzada y redundancia de datos en tiempo real.</p>
+                  <div className="infra-feature-card">
+                    <div className="icon"><Shield size={24} /></div>
+                    <h4>Seguridad Nivel 4</h4>
+                    <p>Protección DDoS avanzada y redundancia de datos en tiempo real.</p>
                   </div>
                 </div>
               </motion.div>
@@ -720,30 +759,11 @@ export default function Home() {
                 transition={{ duration: 0.8 }}
                 style={{ position: "relative" }}
               >
-                <div style={{ 
-                  borderRadius: "24px", 
-                  overflow: "hidden", 
-                  boxShadow: "var(--shadow-xl)",
-                  border: "1px solid var(--border-hi)",
-                  aspectRatio: "4/3",
-                  background: "#eee"
-                }}>
-                  <img src="/infra-datacenter.png" alt="Data Center Odisea" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <div className="infra-image-frame">
+                  <img src="/infra-datacenter.png" alt="Data Center Odisea" />
                 </div>
                 {/* Floating badge */}
-                <div style={{ 
-                  position: "absolute", 
-                  bottom: "-20px", 
-                  right: "-20px", 
-                  background: "white", 
-                  padding: "20px", 
-                  borderRadius: "20px", 
-                  boxShadow: "var(--shadow-lg)",
-                  border: "1px solid var(--border)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px"
-                }}>
+                <div className="infra-status-badge">
                   <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "var(--success)", display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
                     <Check size={20} strokeWidth={3} />
                   </div>
@@ -755,16 +775,16 @@ export default function Home() {
               </motion.div>
             </div>
 
-            <div className="infra-cards-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "2rem" }}>
+            <div className="infra-cards-grid">
               <motion.div
+                className="infra-card-stack"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
               >
-                <div style={{ borderRadius: "20px", overflow: "hidden", border: "1px solid var(--border)", aspectRatio: "16/10", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-raised)" }}>
-                  <svg width="100%" height="100%" viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style={{ opacity: 0.9 }}>
+                <div className="infra-media-frame">
+                  <svg width="100%" height="100%" viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" style={{ opacity: 0.9 }}>
                     <defs>
                       <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor="#f0f7ff" />
@@ -808,14 +828,14 @@ export default function Home() {
               </motion.div>
 
               <motion.div
+                className="infra-card-stack"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
               >
-                <div style={{ borderRadius: "20px", overflow: "hidden", border: "1px solid var(--border)", aspectRatio: "16/10" }}>
-                  <img src="/infra-network.png" alt="Global Network" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <div className="infra-media-frame">
+                  <img src="/infra-network.png" alt="Global Network" />
                 </div>
                 <div>
                   <h3 style={{ fontSize: "1.25rem", marginBottom: "0.75rem" }}>Red Global</h3>
@@ -824,25 +844,14 @@ export default function Home() {
               </motion.div>
 
               <motion.div
+                className="infra-card-stack"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: 0.3 }}
-                style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
               >
-                <div style={{ 
-                  borderRadius: "20px", 
-                  padding: "2rem", 
-                  background: "var(--text-1)", 
-                  color: "white", 
-                  flex: 1, 
-                  display: "flex", 
-                  flexDirection: "column", 
-                  justifyContent: "center",
-                  position: "relative",
-                  overflow: "hidden"
-                }}>
-                  <div style={{ position: "absolute", top: "-20%", right: "-20%", width: "60%", height: "60%", background: "var(--accent)", filter: "blur(60px)", opacity: 0.3 }} />
+                <div className="infra-cta-card">
+                  <div className="infra-cta-glow" />
                   <h3 style={{ fontSize: "1.5rem", marginBottom: "1rem", color: "white", position: "relative" }}>¿Listo para el siguiente nivel?</h3>
                   <p style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.7)", marginBottom: "2rem", position: "relative" }}>Únete a los más de 5,000 proyectos que confían en nuestra infraestructura.</p>
                   <a href="#pricing" className="btn-primary" style={{ alignSelf: "flex-start", position: "relative" }}>Comenzar Ahora <ArrowRight size={16} /></a>
@@ -860,16 +869,18 @@ export default function Home() {
           </div>
 
           {/* Service Tabs */}
-          <div className="service-tabs">
-            {SERVICE_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                className={`service-tab ${activeTab === tab.id ? "active" : ""}`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.icon} {tab.label}
-              </button>
-            ))}
+          <div className="service-tabs-scroll">
+            <div className="service-tabs">
+              {SERVICE_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`service-tab ${activeTab === tab.id ? "active" : ""}`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.icon} {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Plans for selected tab */}
@@ -885,13 +896,14 @@ export default function Home() {
                 plans={plans}
                 type={activeTab}
                 currency={currency}
+                penRate={penRate}
                 onCheckout={openCheckout}
               />
             </motion.div>
           </AnimatePresence>
 
           {/* Tab Description moved below plans */}
-          <div className="service-tab-desc" style={{ marginTop: "2rem" }}>
+          <div className="service-tab-desc" style={{ marginTop: "1rem" }}>
             <p>{currentTab.tagline}</p>
             {(activeTab === "web-design" || activeTab === "web-system") && (
               <span className="service-tab-note">Los precios son referenciales. El costo final se define tras la reunión de requerimientos.</span>
@@ -900,20 +912,20 @@ export default function Home() {
         </section>
 
         {/* ── Contact Form ── */}
-        <section id="contact" style={{ padding: "8rem 2rem", background: "var(--bg)", borderTop: "1px solid var(--border)" }}>
-           <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
-             <div style={{ textAlign: "center", marginBottom: "4rem" }}>
-               <h2 style={{ fontSize: "clamp(2rem, 4vw, 3rem)", marginBottom: "1rem" }}>Hablemos de tu proyecto</h2>
-               <p style={{ color: "var(--text-2)", fontSize: "1.1rem" }}>¿Tienes dudas o necesitas un presupuesto a medida? Escríbenos.</p>
+        <section id="contact" className="contact-section">
+           <div className="section-container" style={{ maxWidth: "1000px" }}>
+             <div className="contact-section-header">
+               <h2>Hablemos de tu proyecto</h2>
+               <p>¿Tienes dudas o necesitas un presupuesto a medida? Escríbenos.</p>
              </div>
-             <div className="contact-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "4rem", alignItems: "start" }}>
+             <div className="contact-grid">
                <motion.div 
                  initial={{ opacity: 0, x: -20 }}
                  whileInView={{ opacity: 1, x: 0 }}
                  viewport={{ once: true }}
                  className="contact-info"
                >
-                 <h4 style={{ marginBottom: "2rem", fontSize: "1.25rem" }}>Información de contacto</h4>
+                 <h4 style={{ marginBottom: "1.25rem", fontSize: "1.25rem" }}>Información de contacto</h4>
                  <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
                    <div style={{ display: "flex", gap: "1rem" }}>
                      <div className="service-card-icon" style={{ flexShrink: 0 }}><Mail size={20} /></div>
@@ -938,7 +950,7 @@ export default function Home() {
                    </div>
                  </div>
 
-                 <div style={{ marginTop: "3rem", padding: "2rem", background: "var(--accent-dim)", borderRadius: "20px", border: "1px solid var(--accent-border)" }}>
+                 <div style={{ marginTop: "1.5rem", padding: "1.5rem", background: "var(--accent-dim)", borderRadius: "20px", border: "1px solid var(--accent-border)" }}>
                    <h5 style={{ color: "var(--accent)", marginBottom: "0.5rem" }}>¿Buscas algo específico?</h5>
                    <p style={{ fontSize: "0.85rem", color: "var(--text-2)" }}>Si necesitas una solución enterprise o infraestructura dedicada, menciona los detalles y un especialista te contactará.</p>
                  </div>
@@ -949,18 +961,9 @@ export default function Home() {
                  whileInView={{ opacity: 1, y: 0 }}
                  viewport={{ once: true }}
                  onSubmit={handleFormSubmit}
-                 className="contact-form" 
-                 style={{ 
-                   background: "white", 
-                   padding: "3rem", 
-                   borderRadius: "32px", 
-                   border: "1px solid var(--border)", 
-                   boxShadow: "var(--shadow-lg)",
-                   position: "relative",
-                   overflow: "hidden"
-                 }}
+                 className="contact-form contact-form-card"
                >
-                  <div className="contact-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+                  <div className="contact-form-grid">
                     <div className="form-group">
                       <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: "0.5rem", color: "var(--text-3)" }}>Nombre o Empresa</label>
                       <input 
@@ -1034,7 +1037,10 @@ export default function Home() {
                   </button>
 
                   <p style={{ fontSize: "0.75rem", color: "var(--text-3)", textAlign: "center", marginTop: "1.25rem" }}>
-                    Al enviar este formulario, aceptas nuestros términos de privacidad.
+                    Al enviar este formulario, aceptas nuestros{" "}
+                    <Link href="/terminos-y-condiciones" style={{ color: "var(--accent)", fontWeight: 700, textDecoration: "none" }}>
+                      Términos y Condiciones
+                    </Link>.
                   </p>
 
                   <AnimatePresence>
@@ -1068,7 +1074,7 @@ export default function Home() {
         <footer className="site-footer">
           <div className="footer-inner">
             <div className="footer-top">
-              <div>
+              <div className="footer-brand-block">
                 <div className="footer-brand">
                   <img src="/logo.png" alt="Odisea Cloud" />
                   ODISEA<span>.CLOUD</span>
@@ -1077,84 +1083,87 @@ export default function Home() {
                   Hosting, desarrollo web y sistemas. Todo en un solo proveedor para tu negocio digital en Latinoamérica.
                 </p>
                 <div className="footer-socials">
-                  <a href="#" className="footer-social"><Twitter size={16} /></a>
-                  <a href="#" className="footer-social"><Linkedin size={16} /></a>
-                  <a href="#" className="footer-social"><Instagram size={16} /></a>
-                  <a href="#" className="footer-social"><Facebook size={16} /></a>
+                  <a href="#" className="footer-social" aria-label="Twitter"><Twitter size={16} /></a>
+                  <a href="#" className="footer-social" aria-label="LinkedIn"><Linkedin size={16} /></a>
+                  <a href="#" className="footer-social" aria-label="Instagram"><Instagram size={16} /></a>
+                  <a href="#" className="footer-social" aria-label="Facebook"><Facebook size={16} /></a>
                 </div>
-                <div style={{ marginTop: '3rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-                    <Shield size={12} color="var(--accent)" />
-                    <h5 style={{ fontSize: '0.65rem', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.15em', margin: 0 }}>Pagos 100% Seguros</h5>
+                <div className="footer-payments">
+                  <div className="footer-payments-label">
+                    <Shield size={12} />
+                    <span>Pagos 100% Seguros</span>
                   </div>
                   <div className="payment-methods-grid">
-                    <div className="payment-method-item" style={{ background: 'white', padding: '4px 8px', borderRadius: '4px' }}>
+                    <div className="payment-method-item payment-method-item--card">
                       <img src="/visa.svg" alt="Visa" />
                     </div>
-                    <div className="payment-method-item">
+                    <div className="payment-method-item payment-method-item--card">
                       <img src="/mastercard.svg" alt="Mastercard" />
                     </div>
                     <div className="payment-method-item">
-                      <img src="/yape.png" alt="Yape" style={{ borderRadius: '6px' }} />
+                      <img src="/yape.png" alt="Yape" />
                     </div>
                     <div className="payment-method-item">
-                      <img src="/plin.png" alt="Plin" style={{ borderRadius: '6px' }} />
+                      <img src="/plin.png" alt="Plin" />
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="footer-col">
-                <h5>Hosting</h5>
-                <ul>
-                  <li><a href="#">Hosting Compartido</a></li>
-                  <li><a href="#">Reseller WHM</a></li>
-                  <li><a href="#">Registro de Dominios</a></li>
-                  <li><a href="#">Certificados SSL</a></li>
-                  <li><a href="#pricing" onClick={() => setActiveTab('addon')}>Complementos</a></li>
-                  <li><a href="#pricing" onClick={() => setActiveTab('combo')}>Combos Especiales</a></li>
-                </ul>
-              </div>
-              <div className="footer-col">
-                <h5>Desarrollo</h5>
-                <ul>
-                  <li><a href="#">Webs Corporativas</a></li>
-                  <li><a href="#">E-commerce</a></li>
-                  <li><a href="#">Sistemas de Gestión</a></li>
-                  <li><a href="#">CRM y ERP</a></li>
-                  <li><a href="#">Integraciones API</a></li>
-                </ul>
-              </div>
-              <div className="footer-col">
-                <h5>Soporte</h5>
-                <ul>
-                  <li><a href="#">Base de Conocimiento</a></li>
-                  <li><a href="#">Estado de Red</a></li>
-                  <li><a href="#">Tickets</a></li>
-                  <li><a href="/login">Área de Clientes</a></li>
-                </ul>
-              </div>
-              <div className="footer-col">
-                <h5>Contacto</h5>
-                <ul>
-                  <li>
-                    <a href="mailto:ventas@odiseacloud.com" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                      <Mail size={14} /> ventas@odiseacloud.com
-                    </a>
-                  </li>
-                  <li>
-                    <a href="mailto:soporte@odiseacloud.com" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                      <Shield size={14} /> soporte@odiseacloud.com
-                    </a>
-                  </li>
-                </ul>
+
+              <div className="footer-links-grid">
+                <details className="footer-col footer-accordion">
+                  <summary className="footer-accordion-summary"><h5>Hosting</h5><ChevronRight size={16} className="footer-chevron" /></summary>
+                  <ul>
+                    <li><a href="#pricing" onClick={() => setActiveTab('shared')}>Hosting Compartido</a></li>
+                    <li><a href="#pricing" onClick={() => setActiveTab('reseller')}>Reseller WHM</a></li>
+                    <li><a href="#domains">Registro de Dominios</a></li>
+                    <li><a href="#pricing" onClick={() => setActiveTab('addon')}>Certificados SSL</a></li>
+                    <li><a href="#pricing" onClick={() => setActiveTab('addon')}>Complementos</a></li>
+                    <li><a href="#pricing" onClick={() => setActiveTab('combo')}>Combos Especiales</a></li>
+                  </ul>
+                </details>
+                <details className="footer-col footer-accordion">
+                  <summary className="footer-accordion-summary"><h5>Desarrollo</h5><ChevronRight size={16} className="footer-chevron" /></summary>
+                  <ul>
+                    <li><a href="#pricing" onClick={() => setActiveTab('web-design')}>Webs Corporativas</a></li>
+                    <li><a href="#pricing" onClick={() => setActiveTab('web-design')}>E-commerce</a></li>
+                    <li><a href="#pricing" onClick={() => setActiveTab('web-system')}>Sistemas de Gestión</a></li>
+                    <li><a href="#pricing" onClick={() => setActiveTab('web-system')}>CRM y ERP</a></li>
+                    <li><a href="#contact">Integraciones API</a></li>
+                  </ul>
+                </details>
+                <details className="footer-col footer-accordion">
+                  <summary className="footer-accordion-summary"><h5>Soporte</h5><ChevronRight size={16} className="footer-chevron" /></summary>
+                  <ul>
+                    <li><a href="#contact">Base de Conocimiento</a></li>
+                    <li><a href="#infrastructure">Estado de Red</a></li>
+                    <li><a href="#contact">Tickets</a></li>
+                    <li><a href="/login">Área de Clientes</a></li>
+                  </ul>
+                </details>
+                <details className="footer-col footer-accordion footer-col--contact">
+                  <summary className="footer-accordion-summary"><h5>Contacto</h5><ChevronRight size={16} className="footer-chevron" /></summary>
+                  <ul>
+                    <li>
+                      <a href="mailto:ventas@odiseacloud.com" className="footer-contact-link">
+                        <Mail size={14} /> <span>ventas@odiseacloud.com</span>
+                      </a>
+                    </li>
+                    <li>
+                      <a href="mailto:soporte@odiseacloud.com" className="footer-contact-link">
+                        <Shield size={14} /> <span>soporte@odiseacloud.com</span>
+                      </a>
+                    </li>
+                  </ul>
+                </details>
               </div>
             </div>
             <div className="footer-bottom">
-              <span>© 2026 Odisea Cloud. Todos los derechos reservados.</span>
+              <span className="footer-copyright">© 2026 Odisea Cloud. Todos los derechos reservados.</span>
               <div className="footer-bottom-links">
-                <a href="#">Términos de Servicio</a>
-                <a href="#">Política de Privacidad</a>
-                <a href="#">SLA</a>
+                <Link href="/terminos-y-condiciones">Términos</Link>
+                <Link href="/privacidad">Privacidad</Link>
+                <Link href="/sla">SLA</Link>
               </div>
             </div>
           </div>

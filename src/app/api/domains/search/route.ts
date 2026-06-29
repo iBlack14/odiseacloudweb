@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { calculateFinalPrice, formatPrice } from '@/lib/pricing';
+import { fetchUsdToPenRate } from '@/lib/exchange-rate';
 
 /**
  * Spaceship Retail Prices (USD/year) — May 2026
@@ -63,6 +64,7 @@ export async function POST(req: Request) {
     }
 
     const availabilityData = await availabilityResponse.json();
+    const { rate: usdToPenRate } = await fetchUsdToPenRate();
 
     // Map results using hardcoded real Spaceship retail prices
     const results = availabilityData.domains.map((res: any) => {
@@ -71,7 +73,7 @@ export async function POST(req: Request) {
 
       console.log(`✅ Domain: ${res.domain} | Spaceship: $${basePrice} | After 12% markup: $${(basePrice * 1.12).toFixed(2)}`);
 
-      const finalPriceDetails = calculateFinalPrice(basePrice, currency);
+      const finalPriceDetails = calculateFinalPrice(basePrice, currency, usdToPenRate);
 
       return {
         domain: res.domain,

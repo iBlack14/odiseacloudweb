@@ -179,23 +179,10 @@ export default function CheckoutModal({ isOpen, onClose, planId, itemName, itemP
   };
 
   return (
-    <div style={{ 
-      position: "fixed", inset: 0, zIndex: 9999, 
-      background: "rgba(255, 255, 255, 0.8)", 
-      backdropFilter: "blur(20px)", 
-      display: "flex", alignItems: "center", justifyContent: "center", 
-      padding: "20px", fontFamily: "'Inter', sans-serif" 
-    }}>
-      <div style={{ 
-        width: "100%", maxWidth: "520px", 
-        background: "#FFFFFF", 
-        borderRadius: "28px", 
-        border: "1px solid var(--border-hi)", 
-        overflow: "hidden",
-        boxShadow: "var(--shadow-xl)"
-      }}>
+    <div className="checkout-modal-overlay">
+      <div className="checkout-modal-panel">
         
-        <div style={{ padding: "24px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)", background: "var(--bg-raised)" }}>
+        <div className="checkout-modal-header">
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <img src="/logo.png" alt="Odisea" style={{ height: "24px" }} />
             <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--text-3)", letterSpacing: "0.1em" }}>CHECKOUT SEGURO</span>
@@ -203,7 +190,7 @@ export default function CheckoutModal({ isOpen, onClose, planId, itemName, itemP
           <button onClick={handleClose} style={{ background: "white", border: "1px solid var(--border)", borderRadius: "8px", width: "32px", height: "32px", cursor: "pointer", color: "var(--text-2)", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
         </div>
 
-        <div style={{ padding: "40px" }}>
+        <div className="checkout-modal-body">
           {step <= 3 && (
             <div style={{ animation: "fadeIn 0.4s" }}>
               <div style={{ marginBottom: "28px" }}>

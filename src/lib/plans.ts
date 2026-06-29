@@ -1,4 +1,4 @@
-import { USD_TO_PEN_RATE } from './pricing';
+
 
 /**
  * Odisea Plan & Service Definitions
@@ -193,11 +193,12 @@ export async function fetchOdiseaPlans(): Promise<HostingPlan[]> {
       if (result.success && Array.isArray(result.data)) {
         const apiPlans = result.data.map((p: any) => {
           const priceUsd = parseFloat(p.price_usd) || 5.00;
+          const apiPen = parseFloat(p.price_pen);
           return {
             id: p.id,
             name: p.name,
             price: priceUsd,
-            price_pen: parseFloat(p.price_pen) || (priceUsd * USD_TO_PEN_RATE),
+            price_pen: apiPen > 0 ? apiPen : undefined,
             features: Array.isArray(p.features) ? p.features : [],
             type: (p.type?.toLowerCase() || 'shared') as any,
             description: p.description || '',

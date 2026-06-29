@@ -174,20 +174,7 @@ export default function Dashboard() {
 
 function NavItem({ icon, label, active = false }: { icon: any, label: string, active?: boolean }) {
   return (
-    <div style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: '0.85rem', 
-      padding: '0.85rem 1rem', 
-      borderRadius: '10px',
-      background: active ? 'var(--accent-dim)' : 'transparent',
-      color: active ? 'var(--accent)' : 'var(--text-2)',
-      cursor: 'pointer',
-      fontSize: '0.9rem',
-      fontWeight: active ? 800 : 500,
-      transition: 'all 0.15s',
-      border: active ? '1px solid var(--accent-border)' : '1px solid transparent'
-    }}>
+    <div className={`dashboard-nav-item ${active ? 'active' : ''}`}>
       <span style={{ opacity: active ? 1 : 0.7 }}>{icon}</span>
       <span style={{ flex: 1 }}>{label}</span>
       {active && <ChevronRight size={14} />}
