@@ -378,7 +378,19 @@ export default function Home() {
 
   useEffect(() => {
     document.body.style.overflow = isMenuOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    document.documentElement.style.overflowX = isMenuOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflowX = "";
+    };
+  }, [isMenuOpen]);
+
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth > 900 && isMenuOpen) setIsMenuOpen(false);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, [isMenuOpen]);
 
   const { data: plans = [] } = useQuery({
@@ -435,27 +447,82 @@ export default function Home() {
       {/* ── Nav ── */}
       {/* ── Nav ── */}
       <nav className={`nav ${scrolled ? "scrolled" : ""} ${isMenuOpen ? "menu-open" : ""}`}>
+        {isMenuOpen && (
+          <button
+            type="button"
+            className="nav-backdrop"
+            aria-label="Cerrar menú"
+            onClick={() => setIsMenuOpen(false)}
+          />
+        )}
         <div className="nav-inner">
           <div className="nav-logo" onClick={() => window.scrollTo(0, 0)} style={{ cursor: 'pointer' }}>
             <img src="/logo.png" alt="Odisea Cloud" />
             ODISEA<span>.CLOUD</span>
           </div>
-          
-          <div className={`nav-links ${isMenuOpen ? "active" : ""}`}>
-            <a href="#services" onClick={() => setIsMenuOpen(false)}>Servicios</a>
-            <a href="#domains" onClick={() => setIsMenuOpen(false)}>Dominios</a>
-            <a href="#pricing" onClick={() => setIsMenuOpen(false)}>Planes</a>
-            <a href="#" onClick={() => setIsMenuOpen(false)}>Soporte</a>
-            <div className="mobile-only-nav">
-              <a href="/login" className="btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>Área de Clientes</a>
+
+          <div className={`nav-links ${isMenuOpen ? "active" : ""}`} aria-hidden={!isMenuOpen}>
+          <div className="mobile-menu-shell">
+            <div className="mobile-menu-decor" aria-hidden="true">
+              <div className="mobile-menu-orb mobile-menu-orb--1" />
+              <div className="mobile-menu-orb mobile-menu-orb--2" />
             </div>
+
+            <div className="mobile-menu-header">
+              <span className="mobile-menu-eyebrow">Odisea Cloud</span>
+              <p className="mobile-menu-tagline">Hosting, dominios y desarrollo web</p>
+            </div>
+
+            <div className="mobile-menu-list">
+              {[
+                { href: "#services", label: "Servicios", icon: <Server size={18} /> },
+                { href: "#domains", label: "Dominios", icon: <Globe size={18} /> },
+                { href: "#pricing", label: "Planes", icon: <Package size={18} /> },
+                { href: "#contact", label: "Soporte", icon: <MessageSquare size={18} /> },
+              ].map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="mobile-menu-item"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <span className="mobile-menu-item-icon">{item.icon}</span>
+                  <span className="mobile-menu-item-label">{item.label}</span>
+                  <ChevronRight size={16} className="mobile-menu-item-chevron" />
+                </a>
+              ))}
+            </div>
+
+            <div className="mobile-menu-actions">
+              <div className="mobile-menu-currency">
+                <span className="mobile-menu-currency-label">Moneda</span>
+                <div className="currency-toggle">
+                  <button type="button" className={`currency-btn ${currency === "USD" ? "active" : ""}`} onClick={() => setCurrency("USD")}>USD</button>
+                  <button type="button" className={`currency-btn ${currency === "PEN" ? "active" : ""}`} onClick={() => setCurrency("PEN")}>PEN</button>
+                </div>
+                {currency === "PEN" && exchangeRate && (
+                  <span className="mobile-menu-fx">1 USD = S/ {penRate.toFixed(2)}</span>
+                )}
+              </div>
+              <a href="#pricing" className="mobile-menu-cta" onClick={() => setIsMenuOpen(false)}>
+                Empezar ahora <ArrowRight size={16} />
+              </a>
+              <a href="/login" className="mobile-menu-login" onClick={() => setIsMenuOpen(false)}>
+                Área de Clientes
+              </a>
+              <div className="mobile-menu-trust">
+                <Shield size={13} />
+                <span>SSL gratis · Soporte 24/7 · 99.9% uptime</span>
+              </div>
+            </div>
+          </div>
           </div>
 
           <div className="nav-right">
-            <div className="currency-toggle-wrap">
+            <div className="currency-toggle-wrap nav-currency-desktop">
               <div className="currency-toggle">
-                <button className={`currency-btn ${currency === "USD" ? "active" : ""}`} onClick={() => setCurrency("USD")}>USD</button>
-                <button className={`currency-btn ${currency === "PEN" ? "active" : ""}`} onClick={() => setCurrency("PEN")}>PEN</button>
+                <button type="button" className={`currency-btn ${currency === "USD" ? "active" : ""}`} onClick={() => setCurrency("USD")}>USD</button>
+                <button type="button" className={`currency-btn ${currency === "PEN" ? "active" : ""}`} onClick={() => setCurrency("PEN")}>PEN</button>
               </div>
               {currency === "PEN" && exchangeRate && (
                 <span className="fx-rate-hint" title={`Fuente: ${exchangeRate.source} · ${exchangeRate.date}`}>
@@ -467,9 +534,14 @@ export default function Home() {
               <a href="/login" className="btn-ghost" style={{ border: 'none' }}>Acceder</a>
             </div>
             <a href="#pricing" className="btn-primary desktop-only-nav" style={{ padding: '0.6rem 1.5rem', borderRadius: '100px' }}>Empezar <ArrowRight size={14} /></a>
-            
-            {/* Burger Button */}
-            <button className="burger" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+
+            <button
+              className="burger"
+              type="button"
+              aria-label={isMenuOpen ? "Cerrar menú" : "Abrir menú"}
+              aria-expanded={isMenuOpen}
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
               <div className="burger-line" />
               <div className="burger-line" />
               <div className="burger-line" />
@@ -674,7 +746,7 @@ export default function Home() {
                 <Package size={12} />
                 <span>Catálogo completo</span>
               </div>
-              <h2>Nuestros servicios</h2>
+              <h2>Nuestros <span className="gradient-text">servicios</span></h2>
               <p>Seis categorías estratégicas. Cada una con sus planes y precios claros.</p>
             </motion.div>
             <div className="services-cards-grid">
@@ -728,15 +800,16 @@ export default function Home() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6 }}
               >
-                <div className="hero-eyebrow" style={{ marginBottom: "1rem", display: "inline-flex" }}>
-                  <Shield size={12} fill="currentColor" /> <span style={{ letterSpacing: "0.05em", fontWeight: 700 }}>TECNOLOGÍA DE VANGUARDIA</span>
+                <div className="section-head section-head--left" style={{ marginBottom: "1.25rem" }}>
+                  <div className="section-eyebrow">
+                    <Shield size={12} fill="currentColor" />
+                    <span>Tecnología de vanguardia</span>
+                  </div>
+                  <h2>Infraestructura para la <span className="gradient-text">máxima potencia</span></h2>
+                  <p>
+                    No solo vendemos hosting, operamos una red global de servidores NVMe optimizados para ofrecer tiempos de respuesta instantáneos y una disponibilidad del 99.9%.
+                  </p>
                 </div>
-                <h2 style={{ fontSize: "clamp(2rem, 4vw, 3rem)", marginBottom: "1rem", lineHeight: 1.1 }}>
-                  Infraestructura diseñada para la <span style={{ color: "var(--accent)" }}>máxima potencia.</span>
-                </h2>
-                <p style={{ color: "var(--text-2)", fontSize: "1.1rem", marginBottom: "1.25rem", lineHeight: 1.6 }}>
-                  No solo vendemos hosting, operamos una red global de servidores NVMe optimizados para ofrecer tiempos de respuesta instantáneos y una disponibilidad del 99.9%.
-                </p>
                 <div className="infra-feature-grid">
                   <div className="infra-feature-card">
                     <div className="icon"><Zap size={24} /></div>
@@ -862,26 +935,40 @@ export default function Home() {
         </section>
 
 
-        <section className="pricing" id="pricing" style={{ borderTop: "1px solid var(--border)" }}>
-          <div className="pricing-header">
-            <h2>Planes y precios</h2>
-            <p>Elige la categoría. Sin letra chica ni costos ocultos.</p>
-          </div>
+        <section className="pricing-section" id="pricing">
+          <div className="pricing-section-glow" aria-hidden="true" />
+          <div className="section-container pricing-section-inner">
+            <motion.div
+              className="section-head"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <div className="section-eyebrow">
+                <Package size={12} />
+                <span>Planes y precios</span>
+              </div>
+              <h2>Elige el plan perfecto para <span className="gradient-text">tu proyecto</span></h2>
+              <p>Sin letra chica ni costos ocultos. Cambia de categoría y compara en segundos.</p>
+            </motion.div>
 
-          {/* Service Tabs */}
-          <div className="service-tabs-scroll">
-            <div className="service-tabs">
-              {SERVICE_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  className={`service-tab ${activeTab === tab.id ? "active" : ""}`}
-                  onClick={() => setActiveTab(tab.id)}
-                >
-                  {tab.icon} {tab.label}
-                </button>
-              ))}
+            <div className="service-tabs-panel">
+              <div className="service-tabs-scroll">
+                <div className="service-tabs">
+                  {SERVICE_TABS.map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      className={`service-tab ${activeTab === tab.id ? "active" : ""}`}
+                      onClick={() => setActiveTab(tab.id)}
+                    >
+                      {tab.icon} {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
 
           {/* Plans for selected tab */}
           <AnimatePresence mode="wait">
@@ -902,59 +989,71 @@ export default function Home() {
             </motion.div>
           </AnimatePresence>
 
-          {/* Tab Description moved below plans */}
-          <div className="service-tab-desc" style={{ marginTop: "1rem" }}>
-            <p>{currentTab.tagline}</p>
-            {(activeTab === "web-design" || activeTab === "web-system") && (
-              <span className="service-tab-note">Los precios son referenciales. El costo final se define tras la reunión de requerimientos.</span>
-            )}
+            <div className="service-tab-desc service-tab-desc-card">
+              <p>{currentTab.tagline}</p>
+              {(activeTab === "web-design" || activeTab === "web-system") && (
+                <span className="service-tab-note">Los precios son referenciales. El costo final se define tras la reunión de requerimientos.</span>
+              )}
+            </div>
           </div>
         </section>
 
         {/* ── Contact Form ── */}
         <section id="contact" className="contact-section">
-           <div className="section-container" style={{ maxWidth: "1000px" }}>
-             <div className="contact-section-header">
-               <h2>Hablemos de tu proyecto</h2>
-               <p>¿Tienes dudas o necesitas un presupuesto a medida? Escríbenos.</p>
-             </div>
-             <div className="contact-grid">
-               <motion.div 
-                 initial={{ opacity: 0, x: -20 }}
-                 whileInView={{ opacity: 1, x: 0 }}
-                 viewport={{ once: true }}
-                 className="contact-info"
-               >
-                 <h4 style={{ marginBottom: "1.25rem", fontSize: "1.25rem" }}>Información de contacto</h4>
-                 <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                   <div style={{ display: "flex", gap: "1rem" }}>
-                     <div className="service-card-icon" style={{ flexShrink: 0 }}><Mail size={20} /></div>
-                     <div>
-                       <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>Email de Ventas</div>
-                       <div style={{ color: "var(--text-3)", fontSize: "0.9rem" }}>ventas@odiseacloud.com</div>
-                     </div>
-                   </div>
-                   <div style={{ display: "flex", gap: "1rem" }}>
-                     <div className="service-card-icon" style={{ flexShrink: 0 }}><MessageSquare size={20} /></div>
-                     <div>
-                       <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>WhatsApp Ventas</div>
-                       <div style={{ color: "var(--text-3)", fontSize: "0.9rem" }}>Respuesta inmediata en horario comercial.</div>
-                     </div>
-                   </div>
-                   <div style={{ display: "flex", gap: "1rem" }}>
-                     <div className="service-card-icon" style={{ flexShrink: 0 }}><Shield size={20} /></div>
-                     <div>
-                       <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>Soporte Técnico</div>
-                       <div style={{ color: "var(--text-3)", fontSize: "0.9rem" }}>soporte@odiseacloud.com</div>
-                     </div>
-                   </div>
-                 </div>
+          <div className="contact-section-glow" aria-hidden="true" />
+          <div className="section-container contact-section-inner" style={{ maxWidth: "1000px" }}>
+            <motion.div
+              className="section-head"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.55 }}
+            >
+              <div className="section-eyebrow">
+                <MessageSquare size={12} />
+                <span>Contacto</span>
+              </div>
+              <h2>Hablemos de <span className="gradient-text">tu proyecto</span></h2>
+              <p>¿Tienes dudas o necesitas un presupuesto a medida? Escríbenos y te respondemos pronto.</p>
+            </motion.div>
 
-                 <div style={{ marginTop: "1.5rem", padding: "1.5rem", background: "var(--accent-dim)", borderRadius: "20px", border: "1px solid var(--accent-border)" }}>
-                   <h5 style={{ color: "var(--accent)", marginBottom: "0.5rem" }}>¿Buscas algo específico?</h5>
-                   <p style={{ fontSize: "0.85rem", color: "var(--text-2)" }}>Si necesitas una solución enterprise o infraestructura dedicada, menciona los detalles y un especialista te contactará.</p>
-                 </div>
-               </motion.div>
+            <div className="contact-grid">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className="contact-info-panel"
+              >
+                <h4>Información de contacto</h4>
+                <div className="contact-channels">
+                  <div className="contact-channel">
+                    <div className="contact-channel-icon"><Mail size={20} /></div>
+                    <div>
+                      <div className="contact-channel-title">Email de Ventas</div>
+                      <div className="contact-channel-text">ventas@odiseacloud.com</div>
+                    </div>
+                  </div>
+                  <div className="contact-channel">
+                    <div className="contact-channel-icon"><MessageSquare size={20} /></div>
+                    <div>
+                      <div className="contact-channel-title">WhatsApp Ventas</div>
+                      <div className="contact-channel-text">Respuesta inmediata en horario comercial.</div>
+                    </div>
+                  </div>
+                  <div className="contact-channel">
+                    <div className="contact-channel-icon"><Shield size={20} /></div>
+                    <div>
+                      <div className="contact-channel-title">Soporte Técnico</div>
+                      <div className="contact-channel-text">soporte@odiseacloud.com</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="contact-highlight">
+                  <h5>¿Buscas algo específico?</h5>
+                  <p>Si necesitas una solución enterprise o infraestructura dedicada, menciona los detalles y un especialista te contactará.</p>
+                </div>
+              </motion.div>
 
                <motion.form 
                  initial={{ opacity: 0, y: 20 }}
@@ -964,39 +1063,32 @@ export default function Home() {
                  className="contact-form contact-form-card"
                >
                   <div className="contact-form-grid">
-                    <div className="form-group">
-                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: "0.5rem", color: "var(--text-3)" }}>Nombre o Empresa</label>
-                      <input 
+                    <div className="form-field">
+                      <label>Nombre o Empresa</label>
+                      <input
                         required
-                        type="text" 
-                        placeholder="Tu nombre o razón social" 
+                        type="text"
+                        placeholder="Tu nombre o razón social"
                         value={formData.name}
-                        onChange={e => setFormData({...formData, name: e.target.value})}
-                        style={{ width: "100%", padding: "0.8rem 1rem", borderRadius: "10px", border: "1px solid var(--border)", background: "var(--bg-raised)", outline: "none", transition: "all 0.2s" }} 
-                        onFocus={e => e.currentTarget.style.borderColor = "var(--accent)"}
-                        onBlur={e => e.currentTarget.style.borderColor = "var(--border)"}
+                        onChange={e => setFormData({ ...formData, name: e.target.value })}
                       />
                     </div>
-                    <div className="form-group">
-                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: "0.5rem", color: "var(--text-3)" }}>Correo electrónico</label>
-                      <input 
+                    <div className="form-field">
+                      <label>Correo electrónico</label>
+                      <input
                         required
-                        type="email" 
-                        placeholder="Correo electrónico" 
+                        type="email"
+                        placeholder="Correo electrónico"
                         value={formData.email}
-                        onChange={e => setFormData({...formData, email: e.target.value})}
-                        style={{ width: "100%", padding: "0.8rem 1rem", borderRadius: "10px", border: "1px solid var(--border)", background: "var(--bg-raised)", outline: "none", transition: "all 0.2s" }} 
-                        onFocus={e => e.currentTarget.style.borderColor = "var(--accent)"}
-                        onBlur={e => e.currentTarget.style.borderColor = "var(--border)"}
+                        onChange={e => setFormData({ ...formData, email: e.target.value })}
                       />
                     </div>
                   </div>
-                  <div className="form-group" style={{ marginBottom: "1.5rem" }}>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: "0.5rem", color: "var(--text-3)" }}>¿En qué podemos ayudarte?</label>
-                    <select 
+                  <div className="form-field" style={{ marginBottom: "1.5rem" }}>
+                    <label>¿En qué podemos ayudarte?</label>
+                    <select
                       value={formData.subject}
-                      onChange={e => setFormData({...formData, subject: e.target.value})}
-                      style={{ width: "100%", padding: "0.8rem 1rem", borderRadius: "10px", border: "1px solid var(--border)", background: "var(--bg-raised)", outline: "none", cursor: "pointer" }}
+                      onChange={e => setFormData({ ...formData, subject: e.target.value })}
                     >
                       <option>Cotización de Hosting</option>
                       <option>Desarrollo Web / Sistema</option>
@@ -1004,30 +1096,26 @@ export default function Home() {
                       <option>Otro asunto</option>
                     </select>
                   </div>
-                  <div className="form-group" style={{ marginBottom: "2rem" }}>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: "0.5rem", color: "var(--text-3)" }}>Mensaje</label>
-                    <textarea 
+                  <div className="form-field" style={{ marginBottom: "2rem" }}>
+                    <label>Mensaje</label>
+                    <textarea
                       required
-                      placeholder="Cuéntanos brevemente qué necesitas..." 
-                      rows={4} 
+                      placeholder="Cuéntanos brevemente qué necesitas..."
+                      rows={4}
                       value={formData.message}
-                      onChange={e => setFormData({...formData, message: e.target.value})}
-                      style={{ width: "100%", padding: "0.8rem 1rem", borderRadius: "10px", border: "1px solid var(--border)", background: "var(--bg-raised)", outline: "none", resize: "none", transition: "all 0.2s" }} 
-                      onFocus={e => e.currentTarget.style.borderColor = "var(--accent)"}
-                      onBlur={e => e.currentTarget.style.borderColor = "var(--border)"}
+                      onChange={e => setFormData({ ...formData, message: e.target.value })}
                     />
                   </div>
-                  
-                  <button 
+
+                  <button
                     disabled={formStatus !== "idle"}
-                    className={`btn-primary ${formStatus === "sent" ? "success" : ""} ${formStatus === "error" ? "error" : ""}`} 
-                    style={{ 
-                      width: "100%", 
-                      padding: "1rem", 
-                      borderRadius: "12px", 
-                      justifyContent: "center", 
+                    className={`btn-primary ${formStatus === "sent" ? "success" : ""} ${formStatus === "error" ? "error" : ""}`}
+                    style={{
+                      width: "100%",
+                      padding: "1rem",
+                      borderRadius: "12px",
                       position: "relative",
-                      background: formStatus === "error" ? "var(--danger)" : undefined
+                      background: formStatus === "error" ? "var(--danger)" : undefined,
                     }}
                   >
                     {formStatus === "idle" && <>Enviar mensaje <ArrowRight size={18} /></>}
@@ -1073,8 +1161,8 @@ export default function Home() {
         {/* ── Footer ── */}
         <footer className="site-footer">
           <div className="footer-inner">
-            <div className="footer-top">
-              <div className="footer-brand-block">
+            <div className="footer-main">
+              <div className="footer-brand-col">
                 <div className="footer-brand">
                   <img src="/logo.png" alt="Odisea Cloud" />
                   ODISEA<span>.CLOUD</span>
@@ -1088,31 +1176,11 @@ export default function Home() {
                   <a href="#" className="footer-social" aria-label="Instagram"><Instagram size={16} /></a>
                   <a href="#" className="footer-social" aria-label="Facebook"><Facebook size={16} /></a>
                 </div>
-                <div className="footer-payments">
-                  <div className="footer-payments-label">
-                    <Shield size={12} />
-                    <span>Pagos 100% Seguros</span>
-                  </div>
-                  <div className="payment-methods-grid">
-                    <div className="payment-method-item payment-method-item--card">
-                      <img src="/visa.svg" alt="Visa" />
-                    </div>
-                    <div className="payment-method-item payment-method-item--card">
-                      <img src="/mastercard.svg" alt="Mastercard" />
-                    </div>
-                    <div className="payment-method-item">
-                      <img src="/yape.png" alt="Yape" />
-                    </div>
-                    <div className="payment-method-item">
-                      <img src="/plin.png" alt="Plin" />
-                    </div>
-                  </div>
-                </div>
               </div>
 
-              <div className="footer-links-grid">
-                <details className="footer-col footer-accordion">
-                  <summary className="footer-accordion-summary"><h5>Hosting</h5><ChevronRight size={16} className="footer-chevron" /></summary>
+              <nav className="footer-nav" aria-label="Enlaces del sitio">
+                <div className="footer-col footer-col--hosting">
+                  <h5 className="footer-col-title">Hosting</h5>
                   <ul>
                     <li><a href="#pricing" onClick={() => setActiveTab('shared')}>Hosting Compartido</a></li>
                     <li><a href="#pricing" onClick={() => setActiveTab('reseller')}>Reseller WHM</a></li>
@@ -1121,9 +1189,9 @@ export default function Home() {
                     <li><a href="#pricing" onClick={() => setActiveTab('addon')}>Complementos</a></li>
                     <li><a href="#pricing" onClick={() => setActiveTab('combo')}>Combos Especiales</a></li>
                   </ul>
-                </details>
-                <details className="footer-col footer-accordion">
-                  <summary className="footer-accordion-summary"><h5>Desarrollo</h5><ChevronRight size={16} className="footer-chevron" /></summary>
+                </div>
+                <div className="footer-col footer-col--desarrollo">
+                  <h5 className="footer-col-title">Desarrollo</h5>
                   <ul>
                     <li><a href="#pricing" onClick={() => setActiveTab('web-design')}>Webs Corporativas</a></li>
                     <li><a href="#pricing" onClick={() => setActiveTab('web-design')}>E-commerce</a></li>
@@ -1131,33 +1199,57 @@ export default function Home() {
                     <li><a href="#pricing" onClick={() => setActiveTab('web-system')}>CRM y ERP</a></li>
                     <li><a href="#contact">Integraciones API</a></li>
                   </ul>
-                </details>
-                <details className="footer-col footer-accordion">
-                  <summary className="footer-accordion-summary"><h5>Soporte</h5><ChevronRight size={16} className="footer-chevron" /></summary>
+                </div>
+                <div className="footer-col footer-col--soporte">
+                  <h5 className="footer-col-title">Soporte</h5>
                   <ul>
                     <li><a href="#contact">Base de Conocimiento</a></li>
                     <li><a href="#infrastructure">Estado de Red</a></li>
                     <li><a href="#contact">Tickets</a></li>
                     <li><a href="/login">Área de Clientes</a></li>
                   </ul>
-                </details>
-                <details className="footer-col footer-accordion footer-col--contact">
-                  <summary className="footer-accordion-summary"><h5>Contacto</h5><ChevronRight size={16} className="footer-chevron" /></summary>
+                </div>
+                <div className="footer-col footer-col--contacto">
+                  <h5 className="footer-col-title">Contacto</h5>
                   <ul>
                     <li>
                       <a href="mailto:ventas@odiseacloud.com" className="footer-contact-link">
-                        <Mail size={14} /> <span>ventas@odiseacloud.com</span>
+                        <Mail size={14} />
+                        <span>ventas@odiseacloud.com</span>
                       </a>
                     </li>
                     <li>
                       <a href="mailto:soporte@odiseacloud.com" className="footer-contact-link">
-                        <Shield size={14} /> <span>soporte@odiseacloud.com</span>
+                        <Shield size={14} />
+                        <span>soporte@odiseacloud.com</span>
                       </a>
                     </li>
                   </ul>
-                </details>
+                </div>
+              </nav>
+            </div>
+
+            <div className="footer-trust">
+              <div className="footer-trust-label">
+                <Shield size={14} />
+                <span>Pagos 100% seguros</span>
+              </div>
+              <div className="footer-trust-methods">
+                <div className="payment-method-item payment-method-item--card">
+                  <img src="/visa.svg" alt="Visa" />
+                </div>
+                <div className="payment-method-item payment-method-item--card">
+                  <img src="/mastercard.svg" alt="Mastercard" />
+                </div>
+                <div className="payment-method-item">
+                  <img src="/yape.png" alt="Yape" />
+                </div>
+                <div className="payment-method-item">
+                  <img src="/plin.png" alt="Plin" />
+                </div>
               </div>
             </div>
+
             <div className="footer-bottom">
               <span className="footer-copyright">© 2026 Odisea Cloud. Todos los derechos reservados.</span>
               <div className="footer-bottom-links">
